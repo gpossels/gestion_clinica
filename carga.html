@@ -538,6 +538,26 @@
         const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
         sel.value = String(Math.max(1, weekNum - 1)).padStart(2,'0');
     }
+	async function registrarLog(accion, coleccion, fecha_registro, campos_modificados) {
+        try {
+            const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+            const snap = await getDocs(query(collection(db, 'centros'), where('__name__', '==', contextoActivo?.centroId || '')));
+            await addDoc(collection(db, 'log_actividad'), {
+                uid: usuario.uid || '',
+                nombre_usuario: usuario.nombre || '',
+                email: usuario.email || '',
+                accion,
+                coleccion,
+                centro_id: contextoActivo?.centroId || '',
+                nombre_centro: contextoActivo?.nombreCentro || '',
+                fecha_registro,
+                campos_modificados,
+                timestamp: new Date()
+            });
+        } catch(e) {
+            console.error('Error al registrar log:', e);
+        }
+    }
 		window.cerrarSesion = async function() {
 		        await signOut(auth);
 		        sessionStorage.clear();
@@ -776,9 +796,11 @@
                 const confirmacion = confirm(`Ya existe un registro para ${contextoActivo.nombreCentro} en ${contextoActivo.fecha}. ¿Desea sobreescribirlo?`);
                 if (!confirmacion) return;
                 await updateDoc(doc(db, col, existing.docs[0].id), datos);
+                await registrarLog('modificar', col, contextoActivo.fecha, datos);
                 showAlert('Registro actualizado exitosamente.', 'success');
             } else {
                 await addDoc(collection(db, col), datos);
+                await registrarLog('crear', col, contextoActivo.fecha, datos);
                 showAlert('Registro guardado exitosamente.', 'success');
             }
             limpiarCampos();
@@ -862,6 +884,7 @@
 
         try {
             await updateDoc(docRef, updates);
+            await registrarLog('modificar', col, registroEditandoId, updates);
             showAlert('Registro actualizado exitosamente.', 'success');
         } catch(e) {
             showAlert('Error al actualizar: ' + e.message, 'error');
@@ -875,6 +898,7 @@
 
         try {
             await deleteDoc(doc(db, getColeccion(contextoActivo.tipo), registroEditandoId));
+            await registrarLog('eliminar', getColeccion(contextoActivo.tipo), contextoActivo.fecha, {});
             showAlert('Registro eliminado.', 'success');
             document.getElementById('resultadoBusqueda').innerHTML = '';
             document.getElementById('camposEditar').classList.add('hidden');
@@ -1193,4 +1217,5 @@ async function iniciarAutocompletadoConsol() {
 </body>
 
 </html>
+
 
