@@ -464,6 +464,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBgxwwm7Q0kf0DgkjZip0rIvobRnXVJUXw",
@@ -1168,8 +1169,22 @@ async function iniciarAutocompletadoConsol() {
     }
 
     // ─── INICIALIZACIÓN ───────────────────────────────────────────
-    cargarCentros();
-    iniciarAutocompletadoConsol();
+    const auth = getAuth(app);
+    onAuthStateChanged(auth, user => {
+        if (!user) {
+            window.location.href = 'login.html';
+            return;
+        }
+        const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+        // Restringir acceso solo a admin
+        if (usuario.rol !== 'admin') {
+            window.location.href = 'carga_centro.html';
+            return;
+        }
+        cargarCentros();
+        iniciarAutocompletadoConsol();
+    });
 </script>
 </body>
+
 </html>
