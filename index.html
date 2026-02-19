@@ -156,6 +156,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBgxwwm7Q0kf0DgkjZip0rIvobRnXVJUXw",
@@ -231,7 +232,19 @@
         }
     });
 
-    cargarIndicadores();
+    const auth = getAuth(app);
+    onAuthStateChanged(auth, user => {
+        if (!user) {
+            window.location.href = 'login.html';
+            return;
+        }
+        const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+        if (usuario.nombre) {
+            document.querySelector('.header p').textContent = `Bienvenido, ${usuario.nombre}`;
+        }
+        cargarIndicadores();
+    });
 </script>
 </body>
+
 </html>
