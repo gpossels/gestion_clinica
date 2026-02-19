@@ -267,6 +267,7 @@
         <button class="tab-btn" id="tabCentros" onclick="switchTab('centros')">Gestionar Centros</button>
         <button class="tab-btn" id="tabIndicadores" onclick="switchTab('indicadores')">Gestionar Indicadores</button>
         <button class="tab-btn" id="tabConsolidado" onclick="switchTab('consolidado')">Consolidado</button>
+        <button class="tab-btn" id="tabLog" onclick="switchTab('log')">Log de Actividad</button>
     </div>
 
     <!-- PANEL: NUEVA CARGA -->
@@ -413,7 +414,55 @@
         </table>
     </div>
 
-<!-- PANEL: CONSOLIDADO -->
+	<!-- PANEL: LOG DE ACTIVIDAD -->
+    <div class="card hidden" id="panelLog">
+        <h2>Log de Actividad</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Desde</label>
+                <input type="date" id="logDesde">
+            </div>
+            <div class="form-col">
+                <label>Hasta</label>
+                <input type="date" id="logHasta">
+            </div>
+            <div class="form-col">
+                <label>Usuario</label>
+                <select id="logUsuario">
+                    <option value="">-- Todos --</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Centro</label>
+                <select id="logCentro">
+                    <option value="">-- Todos --</option>
+                </select>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+            <button class="btn btn-primary" onclick="cargarLog()">Consultar</button>
+            <button class="btn btn-success" onclick="descargarLog()">Descargar Excel</button>
+        </div>
+        <div id="resumenLog" style="margin-bottom:15px; font-weight:600; color:#555;"></div>
+        <div style="overflow-x:auto;">
+            <table id="tablaLog">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Acción</th>
+                        <th>Centro</th>
+                        <th>Período</th>
+                        <th>Campos Modificados</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyLog"></tbody>
+            </table>
+        </div>
+    </div>
+
+	<!-- PANEL: CONSOLIDADO -->
     <div class="card hidden" id="panelConsolidado">
         <h2>Consolidado de Datos</h2>
         <div class="form-row">
@@ -558,7 +607,140 @@
             console.error('Error al registrar log:', e);
         }
     }
-		window.cerrarSesion = async function() {
+
+	// ─── LOG DE ACTIVIDAD ─────────────────────────────────────────
+    async function cargarUsuariosLog() {
+        const snap = await getDocs(collection(db, 'usuarios'));
+        const sel = document.getElementById('logUsuario');
+        sel.innerHTML = '<option value="">-- Todos --</option>';
+        snap.forEach(d => {
+            const data = d.data();
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = data.nombre;
+            sel.appendChild(opt);
+        });
+    }
+
+    function cargarCentrosLog() {
+        const sel = document.getElementById('logCentro');
+        sel.innerHTML = '<option value="">-- Todos --</option>';
+        centros.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.nombre;
+            sel.appendChild(opt);
+        });
+    }
+
+    window.cargarLog = async function() {
+        const desde = document.getElementById('logDesde').value;
+        const hasta = document.getElementById('logHasta').value;
+        const usuarioFiltro = document.getElementById('logUsuario').value;
+        const centroFiltro = document.getElementById('logCentro').value;
+
+        const snap = await getDocs(collection(db, 'log_actividad'));
+        let docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+
+        // Filtrar por fecha
+        if (desde) {
+            const desdeDate = new Date(desde + 'T00:00:00');
+            docs = docs.filter(d => d.timestamp?.toDate() >= desdeDate);
+        }
+        if (hasta) {
+            const hastaDate = new Date(hasta + 'T23:59:59');
+            docs = docs.filter(d => d.timestamp?.toDate() <= hastaDate);
+        }
+
+        // Filtrar por usuario
+        if (usuarioFiltro) docs = docs.filter(d => d.uid === usuarioFiltro);
+
+        // Filtrar por centro
+        if (centroFiltro) docs = docs.filter(d => d.centro_id === centroFiltro);
+
+        // Ordenar por timestamp descendente
+        docs.sort((a, b) => {
+            const ta = a.timestamp?.toDate() || new Date(0);
+            const tb = b.timestamp?.toDate() || new Date(0);
+            return tb - ta;
+        });
+
+        renderTablaLog(docs);
+        document.getElementById('resumenLog').textContent = `${docs.length} registro(s) encontrado(s)`;
+        window._logData = docs;
+    }
+
+    function renderTablaLog(docs) {
+        const tbody = document.getElementById('bodyLog');
+        tbody.innerHTML = '';
+
+        if (docs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#888;">Sin resultados</td></tr>';
+            return;
+        }
+
+        docs.forEach(d => {
+            const fecha = d.timestamp?.toDate();
+            const fechaStr = fecha ? fecha.toLocaleString('es-CL') : '';
+            const campos = d.campos_modificados ? 
+                Object.entries(d.campos_modificados)
+                    .filter(([k]) => k !== 'centro_id' && k !== 'fecha')
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(', ') : '';
+            const nombreCentro = centros.find(c => c.id === d.centro_id)?.nombre || d.centro_id || '';
+
+            const accionColor = {
+                'crear': '#28a745',
+                'modificar': '#fd7e14',
+                'eliminar': '#dc3545'
+            }[d.accion] || '#333';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${fechaStr}</td>
+                <td>${d.nombre_usuario || ''}</td>
+                <td>${d.email || ''}</td>
+                <td style="color:${accionColor}; font-weight:bold;">${d.accion || ''}</td>
+                <td>${nombreCentro}</td>
+                <td>${d.fecha_registro || ''}</td>
+                <td style="font-size:0.85em; color:#555;">${campos}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.descargarLog = function() {
+        if (!window._logData || window._logData.length === 0) {
+            showAlert('Primero consulte el log.', 'error');
+            return;
+        }
+
+        const filas = window._logData.map(d => {
+            const fecha = d.timestamp?.toDate();
+            const campos = d.campos_modificados ?
+                Object.entries(d.campos_modificados)
+                    .filter(([k]) => k !== 'centro_id' && k !== 'fecha')
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(', ') : '';
+            return {
+                'Fecha y Hora': fecha ? fecha.toLocaleString('es-CL') : '',
+                'Usuario': d.nombre_usuario || '',
+                'Email': d.email || '',
+                'Acción': d.accion || '',
+                'Centro': centros.find(c => c.id === d.centro_id)?.nombre || d.centro_id || '',
+                'Período': d.fecha_registro || '',
+                'Campos Modificados': campos
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(filas);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Log');
+        XLSX.writeFile(wb, `log_actividad_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+	
+	window.cerrarSesion = async function() {
 		        await signOut(auth);
 		        sessionStorage.clear();
 		        window.location.href = 'login.html';
@@ -661,7 +843,7 @@
 
     // ─── TABS ─────────────────────────────────────────────────────
     window.switchTab = function(tab) {
-        ['nuevo','editar','centros','indicadores','consolidado'].forEach(t => {
+        ['nuevo','editar','centros','indicadores','consolidado','log'].forEach(t => {
             document.getElementById(`panel${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.add('hidden');
             document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.remove('active');
         });
@@ -1211,11 +1393,20 @@ async function iniciarAutocompletadoConsol() {
             return;
         }
         cargarCentros();
-        iniciarAutocompletadoConsol();
+    iniciarAutocompletadoConsol();
+    cargarUsuariosLog();
+
+    // Fechas por defecto del log: último mes
+    const hoy = new Date();
+    const hace30 = new Date();
+    hace30.setDate(hoy.getDate() - 30);
+    document.getElementById('logDesde').value = hace30.toISOString().slice(0,10);
+    document.getElementById('logHasta').value = hoy.toISOString().slice(0,10);
     });
 </script>
 </body>
 
 </html>
+
 
 
