@@ -196,6 +196,7 @@
         <h1>Carga y Edición de Datos</h1>
         <p>Ingreso de valores por centro y período</p>
         <button class="nav-btn" onclick="window.location.href='index.html'">← Inicio</button>
+        <button class="nav-btn" onclick="cerrarSesion()" style="border-color:#dc3545; color:#dc3545;">Cerrar Sesión</button>
     </div>
 
     <!-- ALERTA GLOBAL -->
@@ -464,7 +465,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBgxwwm7Q0kf0DgkjZip0rIvobRnXVJUXw",
@@ -537,7 +538,11 @@
         const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
         sel.value = String(Math.max(1, weekNum - 1)).padStart(2,'0');
     }
-
+		window.cerrarSesion = async function() {
+		        await signOut(auth);
+		        sessionStorage.clear();
+		        window.location.href = 'login.html';
+		    }
     // ─── CARGA INICIAL ────────────────────────────────────────────
     async function cargarCentros() {
         const snap = await getDocs(collection(db, 'centros'));
@@ -1188,3 +1193,4 @@ async function iniciarAutocompletadoConsol() {
 </body>
 
 </html>
+
