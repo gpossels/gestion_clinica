@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso — Indicadores de Gestión Clínica</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            border: 2px solid black;
+            border-radius: 15px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+        }
+        .login-card h1 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .login-card p {
+            color: #555;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+        .btn-email {
+            background: #1a73e8;
+            color: white;
+        }
+        .btn-email:hover { background: #1558b0; }
+        .btn-google {
+            background: white;
+            color: #333;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-google:hover { background: #f0f4f8; }
+        .btn-google img {
+            width: 20px;
+            height: 20px;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            color: #888;
+            font-size: 0.9em;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #ddd;
+        }
+        .alert {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 18px;
+            font-size: 0.95em;
+            display: none;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .loading {
+            text-align: center;
+            color: #555;
+            display: none;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h1>🏥 Acceso</h1>
+    <p>Indicadores de Gestión Clínica</p>
+
+    <div id="alertBox" class="alert"></div>
+    <div id="loadingMsg" class="loading">Verificando acceso...</div>
+
+    <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="inputEmail" placeholder="usuario@hospital.cl">
+    </div>
+    <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="inputPassword" placeholder="••••••••">
+    </div>
+
+    <button class="btn btn-email" onclick="loginEmail()">Ingresar</button>
+
+    <div class="divider">o</div>
+
+    <button class="btn btn-google" onclick="loginGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Ingresar con Google
+    </button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBgxwwm7Q0kf0DgkjZip0rIvobRnXVJUXw",
+        authDomain: "indicadores-gestion-clinica.firebaseapp.com",
+        projectId: "indicadores-gestion-clinica",
+        storageBucket: "indicadores-gestion-clinica.firebasestorage.app",
+        messagingSenderId: "1221554815",
+        appId: "1:1221554815:web:f304f787f2a953ce59454a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    function showAlert(msg, type = 'error') {
+        const box = document.getElementById('alertBox');
+        box.className = `alert alert-${type}`;
+        box.textContent = msg;
+        box.style.display = 'block';
+    }
+
+    function showLoading(visible) {
+        document.getElementById('loadingMsg').style.display = visible ? 'block' : 'none';
+    }
+
+    async function verificarAcceso(user) {
+        showLoading(true);
+        try {
+            const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+            if (!userDoc.exists()) {
+                await auth.signOut();
+                showLoading(false);
+                showAlert('Su cuenta no tiene acceso al sistema. Contacte al administrador.');
+                return;
+            }
+
+            const userData = userDoc.data();
+            if (userData.activo === false) {
+                await auth.signOut();
+                showLoading(false);
+                showAlert('Su cuenta está desactivada. Contacte al administrador.');
+                return;
+            }
+
+            // Guardar datos del usuario en sessionStorage
+            sessionStorage.setItem('usuario', JSON.stringify({
+                uid: user.uid,
+                nombre: userData.nombre,
+                email: user.email,
+                rol: userData.rol,
+                centro_id: userData.centro_id || ''
+            }));
+
+            // Redirigir según rol
+            if (userData.rol === 'admin') {
+                window.location.href = 'index.html';
+            } else {
+                window.location.href = 'carga_centro.html';
+            }
+
+        } catch(e) {
+            showLoading(false);
+            showAlert('Error al verificar acceso: ' + e.message);
+        }
+    }
+
+    // Si ya está logueado redirigir directamente
+    onAuthStateChanged(auth, user => {
+        if (user) verificarAcceso(user);
+    });
+
+    window.loginEmail = async function() {
+        const email = document.getElementById('inputEmail').value.trim();
+        const password = document.getElementById('inputPassword').value;
+
+        if (!email || !password) {
+            showAlert('Ingrese email y contraseña.');
+            return;
+        }
+
+        try {
+            const cred = await signInWithEmailAndPassword(auth, email, password);
+            await verificarAcceso(cred.user);
+        } catch(e) {
+            showAlert('Email o contraseña incorrectos.');
+        }
+    }
+
+    window.loginGoogle = async function() {
+        try {
+            const cred = await signInWithPopup(auth, provider);
+            await verificarAcceso(cred.user);
+        } catch(e) {
+            showAlert('Error al ingresar con Google: ' + e.message);
+        }
+    }
+
+    // Login con Enter
+    document.getElementById('inputPassword').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') loginEmail();
+    });
+</script>
+</body>
+</html>

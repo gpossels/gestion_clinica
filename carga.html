@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carga de Datos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header {
+            background: white;
+            border: 2px solid black;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 5px; }
+        .header p { color: #555; }
+        .nav-btn {
+            background: white;
+            border: 2px solid black;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95em;
+            margin-top: 15px;
+        }
+        .nav-btn:hover { background: #f0f0f0; }
+        .card {
+            background: white;
+            border: 2px solid black;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .context-bar {
+            background: #1a73e8;
+            color: white;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            display: none;
+        }
+        .context-bar span { margin-right: 30px; }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .form-col { flex: 1; min-width: 200px; }
+        .form-col label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-primary:hover { background: #1558b0; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .fields-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .field-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .field-item label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #444;
+        }
+        .alert {
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            display: none;
+        }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .hidden { display: none; }
+        .tab-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            border: 2px solid #1a73e8;
+            border-radius: 4px;
+            background: white;
+            color: #1a73e8;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .tab-btn.active {
+            background: #1a73e8;
+            color: white;
+        }
+        .search-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .search-row .form-col { flex: 1; min-width: 150px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95em;
+        }
+        th { background: #f8f9fa; font-weight: 600; color: #333; }
+        tr:hover { background: #f8f9fa; }
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 0.85em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-sm-edit { background: #1a73e8; color: white; }
+        .btn-sm-delete { background: #dc3545; color: white; }
+        .edit-highlight {
+            background: #fff3cd !important;
+            border: 2px solid #ffc107 !important;
+        }
+        @media (max-width: 600px) {
+            .form-row { flex-direction: column; }
+            .fields-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>Carga y Edición de Datos</h1>
+        <p>Ingreso de valores por centro y período</p>
+        <button class="nav-btn" onclick="window.location.href='index.html'">← Inicio</button>
+    </div>
+
+    <!-- ALERTA GLOBAL -->
+    <div id="alertBox" class="alert"></div>
+
+    <!-- PASO 1: SELECCIÓN DE CONTEXTO -->
+    <div class="card" id="stepContext">
+        <h2>Paso 1 — Seleccione centro y período</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Centro</label>
+                <select id="selCentro">
+                    <option value="">-- Seleccione centro --</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Tipo de datos</label>
+                <select id="selTipo">
+                    <option value="">-- Seleccione tipo --</option>
+                    <option value="semanal">Semanal</option>
+                    <option value="mensual">Mensual</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row" id="rowFecha" style="display:none;">
+            <div class="form-col" id="colSemana" style="display:none;">
+                <label>Semana ISO</label>
+                <select id="selSemana"></select>
+            </div>
+            <div class="form-col" id="colMes" style="display:none;">
+                <label>Mes</label>
+                <select id="selMes">
+                    <option value="01">Enero</option>
+                    <option value="02">Febrero</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Abril</option>
+                    <option value="05">Mayo</option>
+                    <option value="06">Junio</option>
+                    <option value="07">Julio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Año</label>
+                <input type="number" id="inputAnio" min="2000" max="2100" value="2025">
+            </div>
+            <div class="form-col" style="display:flex; align-items:flex-end;">
+                <button class="btn btn-primary" onclick="confirmarContexto()">Confirmar →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BARRA DE CONTEXTO ACTIVO -->
+    <div class="context-bar" id="contextBar">
+        <span id="contextCentro"></span>
+        <span id="contextPeriodo"></span>
+        <span id="contextTipo"></span>
+    </div>
+
+    <!-- TABS: NUEVA CARGA / BUSCAR Y EDITAR -->
+    <div class="tab-row hidden" id="tabRow">
+        <button class="tab-btn active" id="tabNuevo" onclick="switchTab('nuevo')">Nueva Carga</button>
+        <button class="tab-btn" id="tabEditar" onclick="switchTab('editar')">Buscar y Editar</button>
+        <button class="tab-btn" id="tabCentros" onclick="switchTab('centros')">Gestionar Centros</button>
+        <button class="tab-btn" id="tabIndicadores" onclick="switchTab('indicadores')">Gestionar Indicadores</button>
+        <button class="tab-btn" id="tabConsolidado" onclick="switchTab('consolidado')">Consolidado</button>
+    </div>
+
+    <!-- PANEL: NUEVA CARGA -->
+    <div class="card hidden" id="panelNuevo">
+        <h2>Nueva Carga de Valores</h2>
+        <p style="color:#555; margin-bottom:15px;">Ingrese los valores para el período seleccionado. Solo complete los campos disponibles.</p>
+        <div id="camposNuevo" class="fields-grid"></div>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-success" onclick="guardarNuevo()">Guardar</button>
+            <button class="btn btn-secondary" onclick="limpiarCampos()">Limpiar</button>
+        </div>
+    </div>
+
+    <!-- PANEL: BUSCAR Y EDITAR -->
+    <div class="card hidden" id="panelEditar">
+        <h2>Buscar Registro para Editar</h2>
+        <div class="search-row">
+            <div class="form-col">
+                <label>Centro a buscar</label>
+                <select id="selCentroBuscar"></select>
+            </div>
+            <div class="form-col" id="colBuscarSemana" style="display:none;">
+                <label>Semana ISO</label>
+                <select id="selSemanaBuscar"></select>
+            </div>
+            <div class="form-col" id="colBuscarMes" style="display:none;">
+                <label>Mes</label>
+                <select id="selMesBuscar">
+                    <option value="01">Enero</option>
+                    <option value="02">Febrero</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Abril</option>
+                    <option value="05">Mayo</option>
+                    <option value="06">Junio</option>
+                    <option value="07">Julio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Año</label>
+                <input type="number" id="inputAnioBuscar" min="2000" max="2100" value="2025">
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+                <button class="btn btn-primary" onclick="buscarRegistro()">Buscar</button>
+            </div>
+        </div>
+        <div id="resultadoBusqueda"></div>
+        <div id="camposEditar" class="fields-grid hidden"></div>
+        <div id="botonesEditar" style="margin-top:20px; gap:10px; display:none;">
+            <button class="btn btn-success" onclick="guardarEdicion()">Guardar Cambios</button>
+            <button class="btn btn-danger" onclick="eliminarRegistro()">Eliminar Registro</button>
+        </div>
+    </div>
+
+    <!-- PANEL: GESTIONAR CENTROS -->
+    <div class="card hidden" id="panelCentros">
+        <h2>Gestionar Centros</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Nombre del centro</label>
+                <input type="text" id="inputNombreCentro" placeholder="Ej: Hospital Central">
+            </div>
+            <div class="form-col" style="display:flex; align-items:flex-end;">
+                <button class="btn btn-success" onclick="agregarCentro()">Agregar Centro</button>
+            </div>
+        </div>
+        <table id="tablaCentros">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="bodyCentros"></tbody>
+        </table>
+    </div>
+
+    <!-- PANEL: GESTIONAR INDICADORES -->
+    <div class="card hidden" id="panelIndicadores">
+        <h2>Gestionar Indicadores</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Tipo</label>
+                <select id="selTipoIndicador">
+                    <option value="semanal">Semanal</option>
+                    <option value="mensual">Mensual</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Nombre</label>
+                <input type="text" id="inputNombreInd" placeholder="Ej: Tasa de ocupación">
+            </div>
+            <div class="form-col">
+                <label>Grupo</label>
+                <input type="text" id="inputGrupoInd" placeholder="Ej: Productividad">
+            </div>
+            <div class="form-col">
+                <label>Subgrupo</label>
+                <input type="text" id="inputSubgrupoInd" placeholder="Ej: Camas">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Campo Numerador</label>
+                <input type="text" id="inputNumeradorInd" placeholder="Ej: camas_ocupadas">
+            </div>
+            <div class="form-col">
+                <label>Campo Denominador</label>
+                <input type="text" id="inputDenominadorInd" placeholder="Ej: camas_disponibles">
+            </div>
+            <div class="form-col">
+                <label>Multiplicador</label>
+                <input type="number" id="inputMultiplicadorInd" value="1">
+            </div>
+            <div class="form-col" style="display:flex; align-items:flex-end;">
+                <button class="btn btn-success" onclick="agregarIndicador()">Agregar Indicador</button>
+            </div>
+        </div>
+        <div style="margin-top:10px; margin-bottom:10px;">
+            <label style="font-weight:600;">Filtrar por tipo:</label>
+            <select id="filtroTipoIndicador" onchange="cargarTablaIndicadores()">
+                <option value="semanal">Semanales</option>
+                <option value="mensual">Mensuales</option>
+            </select>
+        </div>
+        <table id="tablaIndicadores">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Grupo</th>
+                    <th>Subgrupo</th>
+                    <th>Numerador</th>
+                    <th>Denominador</th>
+                    <th>Mult.</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="bodyIndicadores"></tbody>
+        </table>
+    </div>
+
+<!-- PANEL: CONSOLIDADO -->
+    <div class="card hidden" id="panelConsolidado">
+        <h2>Consolidado de Datos</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Centro</label>
+                <select id="selCentroConsol">
+                    <option value="">-- Todos los centros --</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Tipo</label>
+                <select id="selTipoConsol">
+                    <option value="semanal">Semanal</option>
+                    <option value="mensual">Mensual</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Desde (año)</label>
+                <input type="number" id="inputAnioDesde" min="2000" max="2100" value="2025">
+            </div>
+            <div class="form-col">
+                <label>Hasta (año)</label>
+                <input type="number" id="inputAnioHasta" min="2000" max="2100" value="2025">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Buscar campo específico</label>
+                <input type="text" id="inputFiltroConsol" placeholder="Escriba nombre parcial del campo..." autocomplete="off">
+                <div id="sugerenciasConsol" style="border:1px solid #ccc; border-radius:4px; max-height:200px; overflow-y:auto; display:none; background:white; position:relative; z-index:100;"></div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+            <button class="btn btn-primary" onclick="cargarConsolidado()">↺ Actualizar</button>
+            <button class="btn btn-success" onclick="descargarConsolidado()">Descargar Excel</button>
+            <button class="btn btn-secondary" onclick="descargarTodo()">Descargar Todo</button>
+        </div>
+        <div id="resumenConsol" style="margin-bottom:15px; font-weight:600; color:#555;"></div>
+        <div style="overflow-x:auto;">
+            <table id="tablaConsol">
+                <thead><tr id="headConsol"></tr></thead>
+                <tbody id="bodyConsol"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBgxwwm7Q0kf0DgkjZip0rIvobRnXVJUXw",
+        authDomain: "indicadores-gestion-clinica.firebaseapp.com",
+        projectId: "indicadores-gestion-clinica",
+        storageBucket: "indicadores-gestion-clinica.firebasestorage.app",
+        messagingSenderId: "1221554815",
+        appId: "1:1221554815:web:f304f787f2a953ce59454a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Estado global
+    let centros = [];
+    let camposDisponibles = [];
+    let contextoActivo = null;
+    let registroEditandoId = null;
+    let indicadores = [];
+
+    // ─── UTILIDADES ───────────────────────────────────────────────
+    function showAlert(msg, type = 'info') {
+        const box = document.getElementById('alertBox');
+        box.className = `alert alert-${type}`;
+        box.textContent = msg;
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 4000);
+    }
+
+    function getColeccion(tipo) {
+        return tipo === 'semanal' ? 'registros_semanales' : 'registros_mensuales';
+    }
+
+    function getFecha() {
+        const tipo = document.getElementById('selTipo').value;
+        const anio = document.getElementById('inputAnio').value;
+        if (tipo === 'semanal') {
+            const sem = document.getElementById('selSemana').value;
+            return `${anio}-W${sem.padStart(2,'0')}`;
+        } else {
+            const mes = document.getElementById('selMes').value;
+            return `${anio}-${mes}`;
+        }
+    }
+
+    function getFechaBuscar() {
+        const tipo = contextoActivo.tipo;
+        const anio = document.getElementById('inputAnioBuscar').value;
+        if (tipo === 'semanal') {
+            const sem = document.getElementById('selSemanaBuscar').value;
+            return `${anio}-W${sem.padStart(2,'0')}`;
+        } else {
+            const mes = document.getElementById('selMesBuscar').value;
+            return `${anio}-${mes}`;
+        }
+    }
+
+    function poblarSemanas(selectId) {
+        const sel = document.getElementById(selectId);
+        sel.innerHTML = '';
+        for (let i = 1; i <= 53; i++) {
+            const opt = document.createElement('option');
+            opt.value = String(i).padStart(2,'0');
+            opt.textContent = `Semana ${i}`;
+            sel.appendChild(opt);
+        }
+        // Seleccionar semana actual
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+        sel.value = String(Math.max(1, weekNum - 1)).padStart(2,'0');
+    }
+
+    // ─── CARGA INICIAL ────────────────────────────────────────────
+    async function cargarCentros() {
+        const snap = await getDocs(collection(db, 'centros'));
+        centros = [];
+        snap.forEach(d => centros.push({ id: d.id, ...d.data() }));
+        centros.sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+        ['selCentro', 'selCentroBuscar', 'selCentroConsol'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            if (!sel) return;
+            const firstOpt = sel.options[0];
+            sel.innerHTML = '';
+            if (firstOpt) sel.appendChild(firstOpt);
+            centros.filter(c => c.activo !== false).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre;
+                sel.appendChild(opt);
+            });
+        });
+    }
+
+    async function cargarCampos(tipo) {
+        // Obtener campos únicos desde los indicadores definidos
+        const col = tipo === 'semanal' ? 'indicadores_semanales' : 'indicadores_mensuales';
+        const snap = await getDocs(collection(db, col));
+        const campos = new Set();
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.campo_numerador) campos.add(data.campo_numerador);
+            if (data.campo_denominador) campos.add(data.campo_denominador);
+        });
+        camposDisponibles = [...campos].sort();
+        return camposDisponibles;
+    }
+
+    // ─── PASO 1: CONFIRMAR CONTEXTO ───────────────────────────────
+    window.confirmarContexto = async function() {
+        const centroId = document.getElementById('selCentro').value;
+        const tipo = document.getElementById('selTipo').value;
+
+        if (!centroId || !tipo) {
+            showAlert('Seleccione centro y tipo de datos.', 'error');
+            return;
+        }
+
+        const centro = centros.find(c => c.id === centroId);
+        const fecha = getFecha();
+
+        contextoActivo = { centroId, tipo, fecha, nombreCentro: centro.nombre };
+
+        // Mostrar barra de contexto
+        document.getElementById('contextCentro').textContent = `📍 ${centro.nombre}`;
+        document.getElementById('contextPeriodo').textContent = `📅 ${fecha}`;
+        document.getElementById('contextTipo').textContent = `📊 ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`;
+        document.getElementById('contextBar').style.display = 'block';
+
+        // Mostrar tabs y panel
+        document.getElementById('tabRow').classList.remove('hidden');
+        switchTab('nuevo');
+
+        // Cargar campos disponibles
+        await cargarCampos(tipo);
+        renderCamposNuevo();
+
+        // Preparar panel de búsqueda
+        if (tipo === 'semanal') {
+            document.getElementById('colBuscarSemana').style.display = 'block';
+            document.getElementById('colBuscarMes').style.display = 'none';
+            poblarSemanas('selSemanaBuscar');
+        } else {
+            document.getElementById('colBuscarSemana').style.display = 'none';
+            document.getElementById('colBuscarMes').style.display = 'block';
+        }
+
+        // Cargar tabla de centros e indicadores
+        cargarTablaCentros();
+        cargarTablaIndicadores();
+
+        showAlert('Contexto confirmado. Puede ingresar datos.', 'success');
+    }
+
+    // ─── SELECTOR DE TIPO ─────────────────────────────────────────
+    document.getElementById('selTipo').addEventListener('change', function() {
+        const tipo = this.value;
+        document.getElementById('rowFecha').style.display = tipo ? 'flex' : 'none';
+        if (tipo === 'semanal') {
+            document.getElementById('colSemana').style.display = 'block';
+            document.getElementById('colMes').style.display = 'none';
+            poblarSemanas('selSemana');
+        } else if (tipo === 'mensual') {
+            document.getElementById('colSemana').style.display = 'none';
+            document.getElementById('colMes').style.display = 'block';
+        }
+    });
+
+    // ─── TABS ─────────────────────────────────────────────────────
+    window.switchTab = function(tab) {
+        ['nuevo','editar','centros','indicadores','consolidado'].forEach(t => {
+            document.getElementById(`panel${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.add('hidden');
+            document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.remove('active');
+        });
+        document.getElementById(`panel${tab.charAt(0).toUpperCase()+tab.slice(1)}`).classList.remove('hidden');
+        document.getElementById(`tab${tab.charAt(0).toUpperCase()+tab.slice(1)}`).classList.add('active');
+    }
+
+    // ─── RENDERIZAR CAMPOS ────────────────────────────────────────
+    function renderCamposNuevo() {
+        const container = document.getElementById('camposNuevo');
+        container.innerHTML = '';
+
+        if (camposDisponibles.length === 0) {
+            container.innerHTML = '<p style="color:#555;">No hay indicadores definidos aún. Vaya a "Gestionar Indicadores" para agregar.</p>';
+            return;
+        }
+
+        // Buscador con autocompletado
+        const buscadorDiv = document.createElement('div');
+        buscadorDiv.style.gridColumn = '1/-1';
+        buscadorDiv.style.marginBottom = '15px';
+        buscadorDiv.innerHTML = `
+            <label style="font-weight:600; display:block; margin-bottom:6px;">Buscar campo:</label>
+            <input type="text" id="buscadorCampo" placeholder="Escriba nombre parcial del campo..." 
+                style="width:100%; padding:10px; border:2px solid #1a73e8; border-radius:4px; font-size:1em;">
+            <div id="sugerenciasCampo" style="border:1px solid #ccc; border-radius:4px; max-height:200px; overflow-y:auto; display:none; background:white; position:relative; z-index:100;"></div>
+        `;
+        container.appendChild(buscadorDiv);
+
+        // Grid de campos seleccionados
+        const gridDiv = document.createElement('div');
+        gridDiv.id = 'camposSeleccionados';
+        gridDiv.style.gridColumn = '1/-1';
+        gridDiv.style.display = 'grid';
+        gridDiv.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+        gridDiv.style.gap = '15px';
+        container.appendChild(gridDiv);
+
+        // Lógica de autocompletado
+        document.getElementById('buscadorCampo').addEventListener('input', function() {
+            const texto = this.value.toLowerCase();
+            const sugerencias = document.getElementById('sugerenciasCampo');
+
+            if (texto.length < 1) {
+                sugerencias.style.display = 'none';
+                return;
+            }
+
+            const coincidencias = camposDisponibles.filter(c => c.toLowerCase().includes(texto));
+
+            if (coincidencias.length === 0) {
+                sugerencias.style.display = 'none';
+                return;
+            }
+
+            sugerencias.innerHTML = '';
+            sugerencias.style.display = 'block';
+
+            coincidencias.forEach(campo => {
+                const item = document.createElement('div');
+                item.textContent = campo;
+                item.style.cssText = 'padding:10px 15px; cursor:pointer; border-bottom:1px solid #eee;';
+                item.addEventListener('mouseenter', () => item.style.background = '#f0f4f8');
+                item.addEventListener('mouseleave', () => item.style.background = 'white');
+                item.addEventListener('click', () => {
+                    agregarCampoAlGrid(campo);
+                    document.getElementById('buscadorCampo').value = '';
+                    sugerencias.style.display = 'none';
+                });
+                sugerencias.appendChild(item);
+            });
+        });
+    }
+
+    function agregarCampoAlGrid(campo) {
+        const grid = document.getElementById('camposSeleccionados');
+        if (document.getElementById(`campo_${campo}`)) {
+            showAlert(`El campo "${campo}" ya está en el formulario.`, 'info');
+            return;
+        }
+        const div = document.createElement('div');
+        div.className = 'field-item';
+        div.id = `wrapper_${campo}`;
+        div.innerHTML = `
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${campo}</span>
+                <span onclick="quitarCampo('${campo}')" style="cursor:pointer; color:#dc3545; font-size:1.2em;" title="Quitar">×</span>
+            </label>
+            <input type="number" id="campo_${campo}" placeholder="Valor numérico" step="any">
+        `;
+        grid.appendChild(div);
+    }
+
+    window.quitarCampo = function(campo) {
+        const wrapper = document.getElementById(`wrapper_${campo}`);
+        if (wrapper) wrapper.remove();
+    }
+            
+    // ─── GUARDAR NUEVO REGISTRO ───────────────────────────────────
+    window.guardarNuevo = async function() {
+        if (!contextoActivo) return;
+
+        const datos = {
+            centro_id: contextoActivo.centroId,
+            fecha: contextoActivo.fecha
+        };
+
+        let tieneValor = false;
+        camposDisponibles.forEach(campo => {
+            const input = document.getElementById(`campo_${campo}`);
+            if (input && input.value !== '') {
+                datos[campo] = parseFloat(input.value);
+                tieneValor = true;
+            }
+        });
+
+        if (!tieneValor) {
+            showAlert('Ingrese al menos un valor antes de guardar.', 'error');
+            return;
+        }
+
+        try {
+            // Verificar si ya existe registro para este centro+fecha
+            const col = getColeccion(contextoActivo.tipo);
+            const q = query(collection(db, col),
+                where('centro_id', '==', contextoActivo.centroId),
+                where('fecha', '==', contextoActivo.fecha)
+            );
+            const existing = await getDocs(q);
+
+            if (!existing.empty) {
+                const confirmacion = confirm(`Ya existe un registro para ${contextoActivo.nombreCentro} en ${contextoActivo.fecha}. ¿Desea sobreescribirlo?`);
+                if (!confirmacion) return;
+                await updateDoc(doc(db, col, existing.docs[0].id), datos);
+                showAlert('Registro actualizado exitosamente.', 'success');
+            } else {
+                await addDoc(collection(db, col), datos);
+                showAlert('Registro guardado exitosamente.', 'success');
+            }
+            limpiarCampos();
+        } catch(e) {
+            showAlert('Error al guardar: ' + e.message, 'error');
+        }
+    }
+
+    window.limpiarCampos = function() {
+        camposDisponibles.forEach(campo => {
+            const input = document.getElementById(`campo_${campo}`);
+            if (input) input.value = '';
+        });
+    }
+
+    // ─── BUSCAR REGISTRO PARA EDITAR ──────────────────────────────
+    window.buscarRegistro = async function() {
+        if (!contextoActivo) return;
+
+        const centroId = document.getElementById('selCentroBuscar').value;
+        const fecha = getFechaBuscar();
+        const col = getColeccion(contextoActivo.tipo);
+
+        const q = query(collection(db, col),
+            where('centro_id', '==', centroId),
+            where('fecha', '==', fecha)
+        );
+
+        const snap = await getDocs(q);
+        const resultado = document.getElementById('resultadoBusqueda');
+
+        if (snap.empty) {
+            resultado.innerHTML = `<div class="alert alert-info" style="display:block;">No se encontró registro para el período ${fecha}.</div>`;
+            document.getElementById('camposEditar').classList.add('hidden');
+            document.getElementById('botonesEditar').style.display = 'none';
+            return;
+        }
+
+        const docData = snap.docs[0];
+        registroEditandoId = docData.id;
+        const data = docData.data();
+
+        const centroBuscado = centros.find(c => c.id === centroId);
+        resultado.innerHTML = `<div class="alert alert-success" style="display:block; margin-bottom:10px;">
+            Registro encontrado — <strong>${centroBuscado?.nombre}</strong> — ${fecha}
+        </div>`;
+
+        // Renderizar campos editables
+        const container = document.getElementById('camposEditar');
+        container.innerHTML = '';
+        container.classList.remove('hidden');
+
+        const campos = Object.keys(data).filter(k => k !== 'centro_id' && k !== 'fecha');
+        campos.sort().forEach(campo => {
+            const div = document.createElement('div');
+            div.className = 'field-item';
+            div.innerHTML = `
+                <label>${campo}</label>
+                <input type="number" id="edit_${campo}" value="${data[campo]}" class="edit-highlight" step="any">
+            `;
+            container.appendChild(div);
+        });
+
+        document.getElementById('botonesEditar').style.display = 'flex';
+    }
+
+    window.guardarEdicion = async function() {
+        if (!registroEditandoId || !contextoActivo) return;
+
+        const col = getColeccion(contextoActivo.tipo);
+        const docRef = doc(db, col, registroEditandoId);
+        const docSnap = await getDoc(docRef);
+        const data = docSnap.data();
+
+        const campos = Object.keys(data).filter(k => k !== 'centro_id' && k !== 'fecha');
+        const updates = {};
+        campos.forEach(campo => {
+            const input = document.getElementById(`edit_${campo}`);
+            if (input) updates[campo] = parseFloat(input.value);
+        });
+
+        try {
+            await updateDoc(docRef, updates);
+            showAlert('Registro actualizado exitosamente.', 'success');
+        } catch(e) {
+            showAlert('Error al actualizar: ' + e.message, 'error');
+        }
+    }
+
+    window.eliminarRegistro = async function() {
+        if (!registroEditandoId || !contextoActivo) return;
+        const confirmacion = confirm('¿Está seguro que desea eliminar este registro? Esta acción no se puede deshacer.');
+        if (!confirmacion) return;
+
+        try {
+            await deleteDoc(doc(db, getColeccion(contextoActivo.tipo), registroEditandoId));
+            showAlert('Registro eliminado.', 'success');
+            document.getElementById('resultadoBusqueda').innerHTML = '';
+            document.getElementById('camposEditar').classList.add('hidden');
+            document.getElementById('botonesEditar').style.display = 'none';
+            registroEditandoId = null;
+        } catch(e) {
+            showAlert('Error al eliminar: ' + e.message, 'error');
+        }
+    }
+
+    // ─── GESTIONAR CENTROS ────────────────────────────────────────
+    window.agregarCentro = async function() {
+        const nombre = document.getElementById('inputNombreCentro').value.trim();
+        if (!nombre) { showAlert('Ingrese un nombre para el centro.', 'error'); return; }
+
+        try {
+            await addDoc(collection(db, 'centros'), { nombre, activo: true });
+            document.getElementById('inputNombreCentro').value = '';
+            await cargarCentros();
+            cargarTablaCentros();
+            showAlert('Centro agregado exitosamente.', 'success');
+        } catch(e) {
+            showAlert('Error al agregar centro: ' + e.message, 'error');
+        }
+    }
+
+    async function cargarTablaCentros() {
+        const snap = await getDocs(collection(db, 'centros'));
+        const tbody = document.getElementById('bodyCentros');
+        tbody.innerHTML = '';
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+        docs.sort((a,b) => a.nombre.localeCompare(b.nombre));
+        docs.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${c.nombre}</td>
+                <td>${c.activo !== false ? '✅ Activo' : '⛔ Inactivo'}</td>
+                <td>
+                    <button class="btn-sm btn-sm-edit" onclick="toggleCentro('${c.id}', ${c.activo !== false})">
+                        ${c.activo !== false ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button class="btn-sm btn-sm-delete" onclick="eliminarCentro('${c.id}')" style="margin-left:5px;">Eliminar</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.toggleCentro = async function(id, activo) {
+        await updateDoc(doc(db, 'centros', id), { activo: !activo });
+        await cargarCentros();
+        cargarTablaCentros();
+    }
+	window.eliminarCentro = async function(id) {
+        const confirmacion = confirm('¿Eliminar este centro? Esta acción no se puede deshacer.');
+        if (!confirmacion) return;
+        try {
+            await deleteDoc(doc(db, 'centros', id));
+            await cargarCentros();
+            cargarTablaCentros();
+            showAlert('Centro eliminado.', 'success');
+        } catch(e) {
+            showAlert('Error al eliminar: ' + e.message, 'error');
+        }
+    }
+    // ─── GESTIONAR INDICADORES ────────────────────────────────────
+    window.agregarIndicador = async function() {
+        const tipo = document.getElementById('selTipoIndicador').value;
+        const nombre = document.getElementById('inputNombreInd').value.trim();
+        const grupo = document.getElementById('inputGrupoInd').value.trim();
+        const subgrupo = document.getElementById('inputSubgrupoInd').value.trim();
+        const campo_numerador = document.getElementById('inputNumeradorInd').value.trim();
+        const campo_denominador = document.getElementById('inputDenominadorInd').value.trim();
+        const multiplicador = parseFloat(document.getElementById('inputMultiplicadorInd').value) || 1;
+
+        if (!nombre || !grupo || !campo_numerador) {
+            showAlert('Complete nombre, grupo y numerador.', 'error');
+            return;
+        }
+
+        const col = tipo === 'semanal' ? 'indicadores_semanales' : 'indicadores_mensuales';
+        try {
+            await addDoc(collection(db, col), { nombre, grupo, subgrupo, campo_numerador, campo_denominador, multiplicador });
+            showAlert('Indicador agregado exitosamente.', 'success');
+            ['inputNombreInd','inputGrupoInd','inputSubgrupoInd','inputNumeradorInd','inputDenominadorInd'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('inputMultiplicadorInd').value = 1;
+            cargarTablaIndicadores();
+        } catch(e) {
+            showAlert('Error al agregar indicador: ' + e.message, 'error');
+        }
+    }
+
+    window.cargarTablaIndicadores = async function() {
+        const tipo = document.getElementById('filtroTipoIndicador').value;
+        const col = tipo === 'semanal' ? 'indicadores_semanales' : 'indicadores_mensuales';
+        const snap = await getDocs(collection(db, col));
+        const tbody = document.getElementById('bodyIndicadores');
+        tbody.innerHTML = '';
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+        docs.sort((a,b) => a.nombre.localeCompare(b.nombre));
+        docs.forEach(ind => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${ind.nombre}</td>
+                <td>${ind.grupo}</td>
+                <td>${ind.subgrupo || '-'}</td>
+                <td>${ind.campo_numerador}</td>
+                <td>${ind.campo_denominador}</td>
+                <td>${ind.multiplicador}</td>
+                <td>
+                    <button class="btn-sm btn-sm-delete" onclick="eliminarIndicador('${ind.id}', '${col}')">Eliminar</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.eliminarIndicador = async function(id, col) {
+        const confirmacion = confirm('¿Eliminar este indicador?');
+        if (!confirmacion) return;
+        await deleteDoc(doc(db, col, id));
+        cargarTablaIndicadores();
+        showAlert('Indicador eliminado.', 'success');
+    }
+
+async function iniciarAutocompletadoConsol() {
+        const input = document.getElementById('inputFiltroConsol');
+        const sugerencias = document.getElementById('sugerenciasConsol');
+        if (!input) return;
+
+        input.addEventListener('input', async function() {
+            const texto = this.value.toLowerCase();
+            if (texto.length < 1) {
+                sugerencias.style.display = 'none';
+                return;
+            }
+
+            // Cargar campos desde indicadores según tipo seleccionado
+            const tipo = document.getElementById('selTipoConsol').value;
+            const col = tipo === 'semanal' ? 'indicadores_semanales' : 'indicadores_mensuales';
+            const snap = await getDocs(collection(db, col));
+            const campos = new Set();
+            snap.forEach(d => {
+                const data = d.data();
+                if (data.campo_numerador) campos.add(data.campo_numerador);
+                if (data.campo_denominador) campos.add(data.campo_denominador);
+            });
+            const todosCampos = [...campos].sort();
+
+            const coincidencias = todosCampos.filter(c => c.toLowerCase().includes(texto));
+            if (coincidencias.length === 0) {
+                sugerencias.style.display = 'none';
+                return;
+            }
+
+            sugerencias.innerHTML = '';
+            sugerencias.style.display = 'block';
+
+            coincidencias.forEach(campo => {
+                const item = document.createElement('div');
+                item.textContent = campo;
+                item.style.cssText = 'padding:10px 15px; cursor:pointer; border-bottom:1px solid #eee;';
+                item.addEventListener('mouseenter', () => item.style.background = '#f0f4f8');
+                item.addEventListener('mouseleave', () => item.style.background = 'white');
+                item.addEventListener('click', () => {
+                    input.value = campo;
+                    sugerencias.style.display = 'none';
+                    cargarConsolidado();
+                });
+                sugerencias.appendChild(item);
+            });
+        });
+    }
+
+    // ─── CONSOLIDADO ──────────────────────────────────────────────
+    window.cargarConsolidado = async function() {
+        const centroId = document.getElementById('selCentroConsol').value;
+        const tipo = document.getElementById('selTipoConsol').value;
+        const anioDesde = parseInt(document.getElementById('inputAnioDesde').value);
+        const anioHasta = parseInt(document.getElementById('inputAnioHasta').value);
+        const col = getColeccion(tipo);
+
+        const snap = await getDocs(collection(db, col));
+        let docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+
+        // Filtrar por centro
+        if (centroId) docs = docs.filter(d => d.centro_id === centroId);
+
+        // Filtrar por rango de años
+        docs = docs.filter(d => {
+            const anio = parseInt(d.fecha.substring(0, 4));
+            return anio >= anioDesde && anio <= anioHasta;
+        });
+
+        // Ordenar por centro y fecha
+        docs.sort((a, b) => {
+            const ca = centros.find(c => c.id === a.centro_id)?.nombre || '';
+            const cb = centros.find(c => c.id === b.centro_id)?.nombre || '';
+            if (ca !== cb) return ca.localeCompare(cb);
+            return a.fecha.localeCompare(b.fecha);
+        });
+
+        renderTablaConsol(docs);
+        document.getElementById('resumenConsol').textContent = `${docs.length} registro(s) encontrado(s)`;
+    }
+
+    function renderTablaConsol(docs) {
+        if (docs.length === 0) {
+            document.getElementById('headConsol').innerHTML = '';
+            document.getElementById('bodyConsol').innerHTML = '<tr><td colspan="100" style="text-align:center; color:#888;">Sin resultados</td></tr>';
+            return;
+        }
+
+        // Obtener todas las columnas únicas
+        const filtro = document.getElementById('inputFiltroConsol').value.toLowerCase().trim();
+        const camposCols = new Set();
+        docs.forEach(d => Object.keys(d).forEach(k => {
+            if (k !== 'id' && k !== 'centro_id' && k !== 'fecha') camposCols.add(k);
+        }));
+        const cols = [...camposCols].sort().filter(c => filtro !== '' && c.toLowerCase().includes(filtro));
+        if (cols.length === 0) {
+            document.getElementById('headConsol').innerHTML = '';
+            document.getElementById('bodyConsol').innerHTML = '<tr><td colspan="100" style="text-align:center; color:#888;">Ingrese un campo para filtrar.</td></tr>';
+            return;
+        }
+
+        // Header
+        const head = document.getElementById('headConsol');
+        head.innerHTML = `
+            <th>Centro</th>
+            <th>Fecha</th>
+            ${cols.map(c => `<th>${c}</th>`).join('')}
+        `;
+
+        // Body
+        const tbody = document.getElementById('bodyConsol');
+        tbody.innerHTML = '';
+        docs.forEach(d => {
+            const nombreCentro = centros.find(c => c.id === d.centro_id)?.nombre || d.centro_id;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${nombreCentro}</td>
+                <td>${d.fecha}</td>
+                ${cols.map(c => `<td>${d[c] !== undefined ? d[c] : ''}</td>`).join('')}
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Guardar para descarga
+        window._consolData = docs;
+        window._consolCols = cols;
+    }
+
+    window.descargarConsolidado = function() {
+        if (!window._consolData || window._consolData.length === 0) {
+            showAlert('Primero consulte los datos.', 'error');
+            return;
+        }
+        exportarExcel(window._consolData, window._consolCols, 'consolidado');
+    }
+
+    window.descargarTodo = async function() {
+        const tipo = document.getElementById('selTipoConsol').value;
+        const col = getColeccion(tipo);
+        const snap = await getDocs(collection(db, col));
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+
+        const camposCols = new Set();
+        docs.forEach(d => Object.keys(d).forEach(k => {
+            if (k !== 'id' && k !== 'centro_id' && k !== 'fecha') camposCols.add(k);
+        }));
+        const cols = [...camposCols].sort();
+
+        exportarExcel(docs, cols, `todo_${tipo}`);
+    }
+
+    function exportarExcel(docs, cols, nombre) {
+        const filas = docs.map(d => {
+            const fila = {
+                Centro: centros.find(c => c.id === d.centro_id)?.nombre || d.centro_id,
+                Fecha: d.fecha
+            };
+            cols.forEach(c => fila[c] = d[c] !== undefined ? d[c] : '');
+            return fila;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(filas);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+        XLSX.writeFile(wb, `${nombre}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // ─── INICIALIZACIÓN ───────────────────────────────────────────
+    cargarCentros();
+    iniciarAutocompletadoConsol();
+</script>
+</body>
+</html>
