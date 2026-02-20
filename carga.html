@@ -266,6 +266,7 @@
         <button class="tab-btn" id="tabEditar" onclick="switchTab('editar')">Buscar y Editar</button>
         <button class="tab-btn" id="tabCentros" onclick="switchTab('centros')">Gestionar Centros</button>
         <button class="tab-btn" id="tabIndicadores" onclick="switchTab('indicadores')">Gestionar Indicadores</button>
+        <button class="tab-btn" id="tabServicios" onclick="switchTab('servicios')">Gestionar Servicios</button>
         <button class="tab-btn" id="tabConsolidado" onclick="switchTab('consolidado')">Consolidado</button>
         <button class="tab-btn" id="tabLog" onclick="switchTab('log')">Log de Actividad</button>
     </div>
@@ -350,6 +351,51 @@
         </table>
     </div>
 
+<!-- PANEL: GESTIONAR SERVICIOS -->
+    <div class="card hidden" id="panelServicios">
+        <h2>Gestionar Servicios por Centro</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Centro</label>
+                <select id="selCentroServicio"></select>
+            </div>
+            <div class="form-col">
+                <label>Unidad</label>
+                <input type="text" id="inputUnidad" placeholder="Ej: Med-Qx, UPC-UCO">
+            </div>
+            <div class="form-col">
+                <label>Edificio</label>
+                <input type="text" id="inputEdificio" placeholder="Ej: Torre C">
+            </div>
+            <div class="form-col">
+                <label>Piso</label>
+                <input type="text" id="inputPiso" placeholder="Ej: 6">
+            </div>
+            <div class="form-col" style="display:flex; align-items:flex-end;">
+                <button class="btn btn-success" onclick="agregarServicio()">Agregar Servicio</button>
+            </div>
+        </div>
+        <div style="margin-top:10px; margin-bottom:10px;">
+            <label style="font-weight:600;">Filtrar por centro:</label>
+            <select id="filtroCentroServicio" onchange="cargarTablaServicios()">
+                <option value="">-- Todos --</option>
+            </select>
+        </div>
+        <table id="tablaServicios">
+            <thead>
+                <tr>
+                    <th>Centro</th>
+                    <th>Unidad</th>
+                    <th>Edificio</th>
+                    <th>Piso</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="bodyServicios"></tbody>
+        </table>
+    </div>
+	
     <!-- PANEL: GESTIONAR INDICADORES -->
     <div class="card hidden" id="panelIndicadores">
         <h2>Gestionar Indicadores</h2>
@@ -866,7 +912,7 @@
 
     // ─── TABS ─────────────────────────────────────────────────────
     window.switchTab = function(tab) {
-        ['nuevo','editar','centros','indicadores','consolidado','log'].forEach(t => {
+        ['nuevo','editar','centros','indicadores','servicios','consolidado','log'].forEach(t => {
             document.getElementById(`panel${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.add('hidden');
             document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.remove('active');
         });
@@ -1308,6 +1354,104 @@ async function iniciarAutocompletadoConsol() {
         });
     }
 
+// ─── GESTIONAR SERVICIOS ──────────────────────────────────────
+    async function poblarSelectoresServicios() {
+        ['selCentroServicio', 'filtroCentroServicio'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            if (!sel) return;
+            sel.innerHTML = selId === 'filtroCentroServicio' ? '<option value="">-- Todos --</option>' : '';
+            centros.filter(c => c.activo !== false).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre;
+                sel.appendChild(opt);
+            });
+        });
+    }
+
+    window.agregarServicio = async function() {
+        const centro_id = document.getElementById('selCentroServicio').value;
+        const unidad = document.getElementById('inputUnidad').value.trim();
+        const edificio = document.getElementById('inputEdificio').value.trim();
+        const piso = document.getElementById('inputPiso').value.trim();
+
+        if (!centro_id || !unidad) {
+            showAlert('Seleccione centro e ingrese la unidad.', 'error');
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, 'unidad_servicio'), {
+                centro_id, unidad, edificio, piso, activo: true
+            });
+            document.getElementById('inputUnidad').value = '';
+            document.getElementById('inputEdificio').value = '';
+            document.getElementById('inputPiso').value = '';
+            cargarTablaServicios();
+            showAlert('Servicio agregado exitosamente.', 'success');
+        } catch(e) {
+            showAlert('Error al agregar servicio: ' + e.message, 'error');
+        }
+    }
+
+    window.cargarTablaServicios = async function() {
+        const filtroCentro = document.getElementById('filtroCentroServicio').value;
+        let snap;
+        if (filtroCentro) {
+            snap = await getDocs(query(collection(db, 'unidad_servicio'),
+                where('centro_id', '==', filtroCentro)));
+        } else {
+            snap = await getDocs(collection(db, 'unidad_servicio'));
+        }
+
+        const tbody = document.getElementById('bodyServicios');
+        tbody.innerHTML = '';
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+        docs.sort((a,b) => {
+            const ca = centros.find(c => c.id === a.centro_id)?.nombre || '';
+            const cb = centros.find(c => c.id === b.centro_id)?.nombre || '';
+            return ca.localeCompare(cb) || a.unidad.localeCompare(b.unidad);
+        });
+
+        docs.forEach(s => {
+            const nombreCentro = centros.find(c => c.id === s.centro_id)?.nombre || s.centro_id;
+            const nombreCompleto = `${s.unidad}${s.edificio ? ' — ' + s.edificio : ''}${s.piso ? ', Piso ' + s.piso : ''}`;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${nombreCentro}</td>
+                <td>${s.unidad}</td>
+                <td>${s.edificio || '-'}</td>
+                <td>${s.piso || '-'}</td>
+                <td>${s.activo !== false ? '✅ Activo' : '⛔ Inactivo'}</td>
+                <td>
+                    <button class="btn-sm btn-sm-edit" onclick="toggleServicio('${s.id}', ${s.activo !== false})">
+                        ${s.activo !== false ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button class="btn-sm btn-sm-delete" onclick="eliminarServicio('${s.id}')" style="margin-left:5px;">Eliminar</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.toggleServicio = async function(id, activo) {
+        await updateDoc(doc(db, 'unidad_servicio', id), { activo: !activo });
+        cargarTablaServicios();
+    }
+
+    window.eliminarServicio = async function(id) {
+        const confirmacion = confirm('¿Eliminar este servicio?');
+        if (!confirmacion) return;
+        try {
+            await deleteDoc(doc(db, 'unidad_servicio', id));
+            cargarTablaServicios();
+            showAlert('Servicio eliminado.', 'success');
+        } catch(e) {
+            showAlert('Error al eliminar: ' + e.message, 'error');
+        }
+    }
+	
     // ─── CONSOLIDADO ──────────────────────────────────────────────
     window.cargarConsolidado = async function() {
         const centroId = document.getElementById('selCentroConsol').value;
@@ -1430,7 +1574,7 @@ async function iniciarAutocompletadoConsol() {
 
     // ─── INICIALIZACIÓN ───────────────────────────────────────────
     const auth = getAuth(app);
-    onAuthStateChanged(auth, user => {
+     onAuthStateChanged(auth, async user => {
         if (!user) {
             window.location.href = 'login.html';
             return;
@@ -1449,9 +1593,10 @@ async function iniciarAutocompletadoConsol() {
             window.location.href = 'login.html';
             return;
         }
-        cargarCentros();
-    iniciarAutocompletadoConsol();
-    cargarUsuariosLog();
+        await cargarCentros();
+	    poblarSelectoresServicios();
+	    iniciarAutocompletadoConsol();
+	    cargarUsuariosLog();
 
     // Fechas por defecto del log: último mes
     const hoy = new Date();
