@@ -707,8 +707,18 @@
         }
 
         const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+        if (!usuario.uid) {
+            window.location.href = 'login.html';
+            return;
+        }
         if (usuario.nombre) {
             document.getElementById('headerSubtitle').textContent = `Bienvenido, ${usuario.nombre}`;
+        }
+        // Operador: fijar centro automáticamente
+        if (usuario.rol === 'operador') {
+            const sel = document.getElementById('selCentro');
+            sel.value = usuario.centro_id;
+            sel.disabled = true;
         }
 
         // Semanas por defecto: últimas 24 semanas
@@ -727,3 +737,4 @@
 </script>
 </body>
 </html>
+
