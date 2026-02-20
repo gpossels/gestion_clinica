@@ -179,6 +179,31 @@
             .form-row { flex-direction: column; }
             .chart-container { height: 350px; }
         }
+        .heatmap-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .heatmap-table th {
+            padding: 8px 10px;
+            background: #f8f9fa;
+            font-size: 0.85em;
+            text-align: center;
+            border: 1px solid #ddd;
+            white-space: nowrap;
+        }
+        .heatmap-table td {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        .heatmap-table td.servicio {
+            text-align: left;
+            font-weight: 600;
+            background: #f8f9fa;
+            white-space: nowrap;
+        }
+        .celda-verde { background: #d4edda; color: #155724; }
+        .celda-amarilla { background: #fff3cd; color: #856404; font-weight: bold; }
+        .celda-roja { background: #f8d7da; color: #721c24; font-weight: bold; }
+        .celda-vacia { background: #f8f9fa; color: #ccc; }
     </style>
 </head>
 <body>
@@ -233,6 +258,25 @@
         <div class="indicadores-grid" id="indicadoresGrid"></div>
     </div>
 
+<!-- MAPA DE CALOR -->
+    <div class="card hidden" id="cardHeatmap">
+        <h2 id="tituloHeatmap">Mapa de Calor</h2>
+        <div style="margin-bottom:10px; color:#555; font-size:0.9em;">
+            <span id="infoHeatmap"></span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="heatmap-table" id="tablaHeatmap">
+                <thead><tr id="headHeatmap"></tr></thead>
+                <tbody id="bodyHeatmap"></tbody>
+            </table>
+        </div>
+        <div style="margin-top:15px; display:flex; gap:20px; font-size:0.85em;">
+            <span>🟢 Sin eventos</span>
+            <span>🟡 Alerta</span>
+            <span>🔴 Clustering</span>
+        </div>
+    </div>
+    
     <!-- GRÁFICO -->
     <div class="card hidden" id="cardGrafico">
         <h2 id="tituloGrafico">Gráfico PBC</h2>
@@ -250,7 +294,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -418,7 +462,14 @@
         document.querySelectorAll('.indicador-card').forEach(c => c.classList.remove('selected'));
         const card = document.getElementById(`ind_${ind.id}`);
         if (card) card.classList.add('selected');
-        generarGrafico();
+
+        if (ind.tipo_grafico === 'clustering') {
+            document.getElementById('cardGrafico').classList.add('hidden');
+            generarHeatmap();
+        } else {
+            document.getElementById('cardHeatmap').classList.add('hidden');
+            generarGrafico();
+        }
     }
 
     // ─── GENERAR GRÁFICO PBC ──────────────────────────────────────
@@ -683,6 +734,145 @@
         });
     }
 
+// ─── MAPA DE CALOR ────────────────────────────────────────────
+    window.generarHeatmap = async function() {
+        if (!indicadorSeleccionado) return;
+
+        const centroId = document.getElementById('selCentro').value;
+        const fechaDesde = getFechaDesde();
+        const fechaHasta = getFechaHasta();
+        const ind = indicadorSeleccionado;
+
+        // Generar lista de semanas en el rango
+        const semanas = generarRangoSemanas(fechaDesde, fechaHasta);
+
+        // Cargar servicios del centro seleccionado
+        let snapSrv;
+        if (centroId) {
+            snapSrv = await getDocs(query(collection(db, 'unidad_servicio'),
+                where('centro_id', '==', centroId)));
+        } else {
+            snapSrv = await getDocs(collection(db, 'unidad_servicio'));
+        }
+
+        const servicios = [];
+        snapSrv.forEach(d => {
+            if (d.data().activo !== false) {
+                const data = d.data();
+                const nombre = `${data.unidad}${data.edificio ? ' — ' + data.edificio : ''}${data.piso ? ', Piso ' + data.piso : ''}`;
+                servicios.push({ id: d.id, nombre, centro_id: data.centro_id });
+            }
+        });
+        servicios.sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+        if (servicios.length === 0) {
+            showAlert('No hay servicios definidos para el centro seleccionado.', 'info');
+            return;
+        }
+
+        // Cargar incidentes
+        let snapInc;
+        if (centroId) {
+            snapInc = await getDocs(query(collection(db, 'incidentes'),
+                where('centro_id', '==', centroId),
+                where('indicador_id', '==', ind.id)
+            ));
+        } else {
+            snapInc = await getDocs(query(collection(db, 'incidentes'),
+                where('indicador_id', '==', ind.id)
+            ));
+        }
+
+        const incidentes = [];
+        snapInc.forEach(d => incidentes.push({ id: d.id, ...d.data() }));
+
+        // Construir mapa: servicio_id → semana → count
+        const mapa = {};
+        servicios.forEach(s => {
+            mapa[s.id] = {};
+            semanas.forEach(sem => mapa[s.id][sem] = 0);
+        });
+
+        incidentes.forEach(inc => {
+            const semana = fechaAISOWeek(inc.fecha);
+            if (mapa[inc.unidad_servicio_id] && semanas.includes(semana)) {
+                mapa[inc.unidad_servicio_id][semana]++;
+            }
+        });
+
+        // Renderizar tabla
+        renderHeatmap(servicios, semanas, mapa, ind);
+
+        document.getElementById('cardHeatmap').classList.remove('hidden');
+        document.getElementById('tituloHeatmap').textContent = ind.nombre;
+        document.getElementById('infoHeatmap').textContent =
+            `${semanas.length} semanas | Umbral amarillo: ${ind.umbral_amarillo} evento | Umbral rojo: ${ind.umbral_rojo} eventos`;
+
+        document.getElementById('cardHeatmap').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function generarRangoSemanas(desde, hasta) {
+        const semanas = [];
+        let actual = desde;
+        let iteraciones = 0;
+        while (actual <= hasta && iteraciones < 104) {
+            semanas.push(actual);
+            actual = siguienteSemana(actual);
+            iteraciones++;
+        }
+        return semanas;
+    }
+
+    function siguienteSemana(isoWeek) {
+        const [anio, semStr] = isoWeek.split('-W');
+        const sem = parseInt(semStr);
+        const maxSem = semanasEnAnio(parseInt(anio));
+        if (sem >= maxSem) return `${parseInt(anio)+1}-W01`;
+        return `${anio}-W${String(sem+1).padStart(2,'0')}`;
+    }
+
+    function semanasEnAnio(anio) {
+        const d = new Date(anio, 11, 28);
+        const startOfYear = new Date(anio, 0, 1);
+        return Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+    }
+
+    function fechaAISOWeek(fechaStr) {
+        const d = new Date(fechaStr + 'T12:00:00');
+        const startOfYear = new Date(d.getFullYear(), 0, 1);
+        const semana = Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+        return `${d.getFullYear()}-W${String(semana).padStart(2,'0')}`;
+    }
+
+    function renderHeatmap(servicios, semanas, mapa, ind) {
+        // Header
+        const head = document.getElementById('headHeatmap');
+        head.innerHTML = `<th>Servicio</th>${semanas.map(s => `<th>${s}</th>`).join('')}`;
+
+        // Body
+        const tbody = document.getElementById('bodyHeatmap');
+        tbody.innerHTML = '';
+
+        servicios.forEach(srv => {
+            const tr = document.createElement('tr');
+            let celdas = `<td class="servicio">${srv.nombre}</td>`;
+
+            semanas.forEach(sem => {
+                const count = mapa[srv.id][sem] || 0;
+                let clase = 'celda-verde';
+                let texto = count === 0 ? '—' : count;
+
+                if (count >= ind.umbral_rojo) clase = 'celda-roja';
+                else if (count >= ind.umbral_amarillo) clase = 'celda-amarilla';
+
+                celdas += `<td class="${clase}">${texto}</td>`;
+            });
+
+            tr.innerHTML = celdas;
+            tbody.appendChild(tr);
+        });
+    }
+    
     // ─── DESCARGAR GRÁFICO ────────────────────────────────────────
     window.descargarGrafico = function() {
         if (!pbcChart) return;
@@ -737,4 +927,5 @@
 </script>
 </body>
 </html>
+
 
