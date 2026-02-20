@@ -193,6 +193,7 @@
     <div class="tab-row" id="tabRow">
         <button class="tab-btn active" id="tabSemanal" onclick="switchTab('semanal')">Semanal</button>
         <button class="tab-btn" id="tabMensual" onclick="switchTab('mensual')">Mensual</button>
+        <button class="tab-btn" id="tabIncidentes" onclick="switchTab('incidentes')">Registrar Incidente</button>
     </div>
 
     <!-- PANEL SEMANAL -->
@@ -255,6 +256,49 @@
         <div style="margin-top:20px; display:flex; gap:10px;">
             <button class="btn btn-success" onclick="guardarDatos('mensual')">Guardar</button>
             <button class="btn btn-secondary" onclick="limpiarCamposTipo('mensual')">Limpiar</button>
+        </div>
+    </div>
+
+<!-- PANEL INCIDENTES -->
+    <div class="card hidden" id="panelIncidentes">
+        <h2>Registrar Incidente</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Tipo de Incidente</label>
+                <select id="selIndicadorIncidente">
+                    <option value="">-- Seleccione --</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Servicio</label>
+                <select id="selServicioIncidente">
+                    <option value="">-- Seleccione --</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Fecha del incidente</label>
+                <input type="date" id="inputFechaIncidente">
+            </div>
+        </div>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-success" onclick="guardarIncidente()">Registrar</button>
+            <button class="btn btn-secondary" onclick="limpiarIncidente()">Limpiar</button>
+        </div>
+        <div style="margin-top:25px;">
+            <h3 style="font-size:1em; margin-bottom:10px; color:#555;">Incidentes registrados (últimos 30 días)</h3>
+            <div style="overflow-x:auto;">
+                <table id="tablaIncidentes">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Servicio</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyIncidentes"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -483,7 +527,7 @@
 
     // ─── TABS ─────────────────────────────────────────────────────
     window.switchTab = function(tipo) {
-        ['semanal','mensual'].forEach(t => {
+        ['semanal','mensual','incidentes'].forEach(t => {
             document.getElementById(`panel${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.add('hidden');
             document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.remove('active');
         });
@@ -491,6 +535,136 @@
         document.getElementById(`tab${tipo.charAt(0).toUpperCase()+tipo.slice(1)}`).classList.add('active');
     }
 
+// ─── INCIDENTES ───────────────────────────────────────────────
+    async function cargarIndicadoresClustering() {
+        const snap = await getDocs(collection(db, 'indicadores_semanales'));
+        const sel = document.getElementById('selIndicadorIncidente');
+        sel.innerHTML = '<option value="">-- Seleccione --</option>';
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.tipo_grafico === 'clustering') {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = data.nombre;
+                sel.appendChild(opt);
+            }
+        });
+    }
+
+    async function cargarServiciosCentro() {
+        const snap = await getDocs(query(
+            collection(db, 'unidad_servicio'),
+            where('centro_id', '==', usuario.centro_id)
+        ));
+        const sel = document.getElementById('selServicioIncidente');
+        sel.innerHTML = '<option value="">-- Seleccione --</option>';
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.activo !== false) {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                const nombre = `${data.unidad}${data.edificio ? ' — ' + data.edificio : ''}${data.piso ? ', Piso ' + data.piso : ''}`;
+                opt.textContent = nombre;
+                sel.appendChild(opt);
+            }
+        });
+    }
+
+    async function cargarTablaIncidentes() {
+        const hace30 = new Date();
+        hace30.setDate(hace30.getDate() - 30);
+        const fechaMin = hace30.toISOString().slice(0,10);
+
+        const snap = await getDocs(query(
+            collection(db, 'incidentes'),
+            where('centro_id', '==', usuario.centro_id)
+        ));
+
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+        const filtrados = docs.filter(d => d.fecha >= fechaMin);
+        filtrados.sort((a,b) => b.fecha.localeCompare(a.fecha));
+
+        // Cargar nombres de indicadores y servicios
+        const snapInd = await getDocs(collection(db, 'indicadores_semanales'));
+        const indMap = {};
+        snapInd.forEach(d => indMap[d.id] = d.data().nombre);
+
+        const snapSrv = await getDocs(collection(db, 'unidad_servicio'));
+        const srvMap = {};
+        snapSrv.forEach(d => {
+            const data = d.data();
+            srvMap[d.id] = `${data.unidad}${data.edificio ? ' — ' + data.edificio : ''}${data.piso ? ', Piso ' + data.piso : ''}`;
+        });
+
+        const tbody = document.getElementById('bodyIncidentes');
+        tbody.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">Sin incidentes en los últimos 30 días</td></tr>';
+            return;
+        }
+
+        filtrados.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${d.fecha}</td>
+                <td>${indMap[d.indicador_id] || d.indicador_id}</td>
+                <td>${srvMap[d.unidad_servicio_id] || d.unidad_servicio_id}</td>
+                <td>
+                    <button class="btn-sm btn-sm-delete" onclick="eliminarIncidente('${d.id}')">Eliminar</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.guardarIncidente = async function() {
+        const indicador_id = document.getElementById('selIndicadorIncidente').value;
+        const unidad_servicio_id = document.getElementById('selServicioIncidente').value;
+        const fecha = document.getElementById('inputFechaIncidente').value;
+
+        if (!indicador_id || !unidad_servicio_id || !fecha) {
+            showAlert('Complete todos los campos.', 'error');
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, 'incidentes'), {
+                centro_id: usuario.centro_id,
+                indicador_id,
+                unidad_servicio_id,
+                fecha
+            });
+
+            await registrarLog('crear', 'incidentes', fecha, { indicador_id, unidad_servicio_id });
+            showAlert('Incidente registrado exitosamente.', 'success');
+            limpiarIncidente();
+            cargarTablaIncidentes();
+        } catch(e) {
+            showAlert('Error al registrar: ' + e.message, 'error');
+        }
+    }
+
+    window.limpiarIncidente = function() {
+        document.getElementById('selIndicadorIncidente').value = '';
+        document.getElementById('selServicioIncidente').value = '';
+        document.getElementById('inputFechaIncidente').value = '';
+    }
+
+    window.eliminarIncidente = async function(id) {
+        const confirmacion = confirm('¿Eliminar este incidente?');
+        if (!confirmacion) return;
+        try {
+            await deleteDoc(doc(db, 'incidentes', id));
+            await registrarLog('eliminar', 'incidentes', '', {});
+            cargarTablaIncidentes();
+            showAlert('Incidente eliminado.', 'success');
+        } catch(e) {
+            showAlert('Error al eliminar: ' + e.message, 'error');
+        }
+    }
+    
     // ─── CERRAR SESIÓN ────────────────────────────────────────────
     window.cerrarSesion = async function() {
         await signOut(auth);
@@ -570,8 +744,17 @@
 
         iniciarAutocompletado('buscadorSemanal', 'sugerenciasSemanal', camposSem, 'camposSemanal');
         iniciarAutocompletado('buscadorMensual', 'sugerenciasMensual', camposMen, 'camposMensual');
+
+        // Inicializar incidentes
+        await cargarIndicadoresClustering();
+        await cargarServiciosCentro();
+        await cargarTablaIncidentes();
+
+        // Fecha por defecto: hoy
+        document.getElementById('inputFechaIncidente').value = new Date().toISOString().slice(0,10);
     });
 </script>
 </body>
 
 </html>
+
