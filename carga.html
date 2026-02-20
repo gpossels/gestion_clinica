@@ -1184,8 +1184,13 @@
         const campo_denominador = document.getElementById('inputDenominadorInd').value.trim();
         const multiplicador = parseFloat(document.getElementById('inputMultiplicadorInd').value) || 1;
 
-        if (!nombre || !grupo || !campo_numerador) {
-            showAlert('Complete nombre, grupo y numerador.', 'error');
+        const tipo_grafico = document.getElementById('selTipoGrafico').value;
+        if (!nombre || !grupo) {
+            showAlert('Complete nombre y grupo.', 'error');
+            return;
+        }
+        if (tipo_grafico === 'pbc' && !campo_numerador) {
+            showAlert('Complete el campo numerador.', 'error');
             return;
         }
 
@@ -1460,6 +1465,7 @@ async function iniciarAutocompletadoConsol() {
 </body>
 
 </html>
+
 
 
 
