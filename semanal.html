@@ -339,8 +339,12 @@
 
     function getSemanaActual() {
         const now = new Date();
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        return Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+        const jan4 = new Date(now.getFullYear(), 0, 4);
+        const startOfWeek1 = new Date(jan4);
+        startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+        const diff = now - startOfWeek1;
+        if (diff < 0) return 53;
+        return Math.floor(diff / (7 * 86400000)) + 1;
     }
 
     function getFechaDesde() {
@@ -839,8 +843,18 @@
 
     function fechaAISOWeek(fechaStr) {
         const d = new Date(fechaStr + 'T12:00:00');
-        const startOfYear = new Date(d.getFullYear(), 0, 1);
-        const semana = Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+        const jan4 = new Date(d.getFullYear(), 0, 4);
+        const startOfWeek1 = new Date(jan4);
+        startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+        const diff = d - startOfWeek1;
+        if (diff < 0) {
+            const jan4prev = new Date(d.getFullYear() - 1, 0, 4);
+            const startOfWeek1prev = new Date(jan4prev);
+            startOfWeek1prev.setDate(jan4prev.getDate() - ((jan4prev.getDay() + 6) % 7));
+            const semana = Math.floor((d - startOfWeek1prev) / (7 * 86400000)) + 1;
+            return `${d.getFullYear()-1}-W${String(semana).padStart(2,'0')}`;
+        }
+        const semana = Math.floor(diff / (7 * 86400000)) + 1;
         return `${d.getFullYear()}-W${String(semana).padStart(2,'0')}`;
     }
 
@@ -927,5 +941,6 @@
 </script>
 </body>
 </html>
+
 
 
