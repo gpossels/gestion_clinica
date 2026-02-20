@@ -246,8 +246,12 @@
             return;
         }
         const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+        if (usuario.rol === 'operador') {
+            window.location.href = 'carga_centro.html';
+            return;
+        }
         if (usuario.nombre) {
-            document.querySelector('.header p').textContent = `Bienvenido, ${usuario.nombre}`;
+            document.getElementById('headerSubtitle').textContent = `Bienvenido, ${usuario.nombre}`;
         }
         cargarIndicadores();
     });
@@ -255,4 +259,5 @@
 </body>
 
 </html>
+
 
