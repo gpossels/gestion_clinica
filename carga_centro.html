@@ -537,6 +537,7 @@
 
 // ─── INCIDENTES ───────────────────────────────────────────────
     async function cargarIndicadoresClustering() {
+        console.log('usuario al cargar clustering:', usuario);
         const snap = await getDocs(collection(db, 'indicadores_semanales'));
         const sel = document.getElementById('selIndicadorIncidente');
         sel.innerHTML = '<option value="">-- Seleccione --</option>';
@@ -757,4 +758,5 @@
 </body>
 
 </html>
+
 
