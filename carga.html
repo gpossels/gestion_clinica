@@ -387,8 +387,31 @@
                 <label>Multiplicador</label>
                 <input type="number" id="inputMultiplicadorInd" value="1">
             </div>
+            <div class="form-col">
+                <label>Tipo de gráfico</label>
+                <select id="selTipoGrafico">
+                    <option value="pbc">PBC</option>
+                    <option value="clustering">Clustering</option>
+                </select>
+            </div>
             <div class="form-col" style="display:flex; align-items:flex-end;">
                 <button class="btn btn-success" onclick="agregarIndicador()">Agregar Indicador</button>
+            </div>
+        </div>
+        <div class="form-row" id="rowClustering" style="display:none;">
+            <div class="form-col">
+                <label>Ventana de días</label>
+                <input type="number" id="inputVentanaDias" value="7" min="1">
+            </div>
+            <div class="form-col">
+                <label>Umbral amarillo (eventos)</label>
+                <input type="number" id="inputUmbralAmarillo" value="1" min="1">
+            </div>
+            <div class="form-col">
+                <label>Umbral rojo (eventos)</label>
+                <input type="number" id="inputUmbralRojo" value="2" min="1">
+            </div>
+        </div>
             </div>
         </div>
         <div style="margin-top:10px; margin-bottom:10px;">
@@ -1148,7 +1171,11 @@
         }
     }
     // ─── GESTIONAR INDICADORES ────────────────────────────────────
-    window.agregarIndicador = async function() {
+    document.getElementById('selTipoGrafico').addEventListener('change', function() {
+        const rowClustering = document.getElementById('rowClustering');
+        rowClustering.style.display = this.value === 'clustering' ? 'flex' : 'none';
+    });
+		window.agregarIndicador = async function() {
         const tipo = document.getElementById('selTipoIndicador').value;
         const nombre = document.getElementById('inputNombreInd').value.trim();
         const grupo = document.getElementById('inputGrupoInd').value.trim();
@@ -1162,14 +1189,32 @@
             return;
         }
 
+        const tipo_grafico = document.getElementById('selTipoGrafico').value;
+        const ventana_dias = parseInt(document.getElementById('inputVentanaDias').value) || 7;
+        const umbral_amarillo = parseInt(document.getElementById('inputUmbralAmarillo').value) || 1;
+        const umbral_rojo = parseInt(document.getElementById('inputUmbralRojo').value) || 2;
+
         const col = tipo === 'semanal' ? 'indicadores_semanales' : 'indicadores_mensuales';
+
+        const datosIndicador = { nombre, grupo, subgrupo, campo_numerador, campo_denominador, multiplicador, tipo_grafico };
+        if (tipo_grafico === 'clustering') {
+            datosIndicador.ventana_dias = ventana_dias;
+            datosIndicador.umbral_amarillo = umbral_amarillo;
+            datosIndicador.umbral_rojo = umbral_rojo;
+        }
+
         try {
-            await addDoc(collection(db, col), { nombre, grupo, subgrupo, campo_numerador, campo_denominador, multiplicador });
+            await addDoc(collection(db, col), datosIndicador);
             showAlert('Indicador agregado exitosamente.', 'success');
             ['inputNombreInd','inputGrupoInd','inputSubgrupoInd','inputNumeradorInd','inputDenominadorInd'].forEach(id => {
                 document.getElementById(id).value = '';
             });
             document.getElementById('inputMultiplicadorInd').value = 1;
+            document.getElementById('selTipoGrafico').value = 'pbc';
+            document.getElementById('rowClustering').style.display = 'none';
+            document.getElementById('inputVentanaDias').value = 7;
+            document.getElementById('inputUmbralAmarillo').value = 1;
+            document.getElementById('inputUmbralRojo').value = 2;
             cargarTablaIndicadores();
         } catch(e) {
             showAlert('Error al agregar indicador: ' + e.message, 'error');
@@ -1415,6 +1460,7 @@ async function iniciarAutocompletadoConsol() {
 </body>
 
 </html>
+
 
 
 
