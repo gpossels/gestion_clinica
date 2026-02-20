@@ -62,7 +62,7 @@
             flex-wrap: wrap;
             margin-bottom: 15px;
         }
-        .form-col { flex: 1; min-width: 200px; }
+        .form-col { flex: 1; min-width: 180px; }
         .form-col label {
             display: block;
             font-weight: 600;
@@ -104,128 +104,79 @@
         }
         .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .hidden { display: none; }
-        .grupo-section { margin-bottom: 30px; }
-        .grupo-titulo {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #1a73e8;
-            padding: 10px 0;
-            border-bottom: 2px solid #1a73e8;
-            margin-bottom: 15px;
+        .grupos-nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
         }
-        .subgrupo-titulo {
-            font-size: 1em;
+        .grupo-btn {
+            padding: 8px 16px;
+            border: 2px solid #1a73e8;
+            border-radius: 20px;
+            background: white;
+            color: #1a73e8;
             font-weight: bold;
-            color: #555;
-            padding: 8px 0;
-            margin-bottom: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        .grupo-btn.active {
+            background: #1a73e8;
+            color: white;
         }
         .indicadores-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
         .indicador-card {
+            background: #f8f9fa;
             border: 2px solid #ddd;
             border-radius: 8px;
             padding: 15px;
             cursor: pointer;
             transition: all 0.2s;
-            background: white;
         }
         .indicador-card:hover {
             border-color: #1a73e8;
-            box-shadow: 0 2px 8px rgba(26,115,232,0.15);
+            background: #e8f0fe;
         }
-        .indicador-card.seleccionado {
+        .indicador-card.selected {
             border-color: #1a73e8;
             background: #e8f0fe;
         }
-        .indicador-card h4 { font-size: 0.95em; margin-bottom: 5px; }
-        .indicador-card p { font-size: 0.8em; color: #888; }
+        .indicador-card h3 { font-size: 1em; margin-bottom: 5px; }
+        .indicador-card p { font-size: 0.85em; color: #666; }
         .chart-container {
             position: relative;
             height: 500px;
+            margin-bottom: 20px;
             background: white;
             border: 1px solid #ddd;
             border-radius: 8px;
-            padding: 15px;
+            padding: 20px;
         }
-        .chart-controls {
+        .chart-actions {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
             flex-wrap: wrap;
-        }
-        .chart-controls button {
-            background: #6f42c1;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-        .chart-controls button:hover { background: #5a359a; }
-        .buscador-ind {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .buscador-ind input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #1a73e8;
-            border-radius: 8px;
-            font-size: 1em;
-            font-family: inherit;
-        }
-        .buscador-ind input:focus { outline: none; }
-        #sugerenciasInd {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            max-height: 250px;
-            overflow-y: auto;
-            display: none;
-            z-index: 100;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .sug-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-        .sug-item:hover { background: #f0f4f8; }
-        .sug-item .sug-nombre { font-weight: 600; font-size: 0.95em; }
-        .sug-item .sug-meta { font-size: 0.8em; color: #888; }
-        .range-controls {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
             margin-bottom: 15px;
-            border: 1px solid #ddd;
         }
-        .range-controls h4 { margin-bottom: 10px; color: #333; }
-        .range-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-        .range-btn {
-            background: #6f42c1;
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85em;
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: bold;
+            background: #e8f0fe;
+            color: #1a73e8;
+            margin-left: 8px;
         }
-        .range-btn:hover { background: #5a359a; }
-        @media (max-width: 768px) {
-            .indicadores-grid { grid-template-columns: 1fr; }
+        @media (max-width: 600px) {
+            .form-row { flex-direction: column; }
             .chart-container { height: 350px; }
         }
     </style>
@@ -253,65 +204,53 @@
             <div class="form-col">
                 <label>Centro</label>
                 <select id="selCentro">
-                    <option value="">-- Seleccione centro --</option>
+                    <option value="">-- Todos los centros --</option>
                 </select>
             </div>
             <div class="form-col">
-                <label>Semana inicio</label>
-                <select id="selSemanaInicio"></select>
+                <label>Desde (Semana)</label>
+                <select id="selSemanaDesde"></select>
             </div>
             <div class="form-col">
-                <label>Año inicio</label>
-                <input type="number" id="inputAnioInicio" min="2000" max="2100" value="2024">
+                <label>Año Desde</label>
+                <input type="number" id="inputAnioDesde" min="2000" max="2100" value="2025">
             </div>
             <div class="form-col">
-                <label>Semana fin</label>
-                <select id="selSemanaFin"></select>
+                <label>Hasta (Semana)</label>
+                <select id="selSemanaHasta"></select>
             </div>
             <div class="form-col">
-                <label>Año fin</label>
-                <input type="number" id="inputAnioFin" min="2000" max="2100" value="2025">
+                <label>Año Hasta</label>
+                <input type="number" id="inputAnioHasta" min="2000" max="2100" value="2025">
             </div>
         </div>
     </div>
 
-    <!-- BUSCADOR DE INDICADORES -->
+    <!-- NAVEGACIÓN POR GRUPOS -->
     <div class="card">
-        <h2>Seleccionar Indicador</h2>
-        <div class="buscador-ind">
-            <input type="text" id="inputBuscadorInd" placeholder="Busque por nombre, grupo o subgrupo..." autocomplete="off">
-            <div id="sugerenciasInd"></div>
-        </div>
-        <div id="listaIndicadores"></div>
+        <h2>Indicadores</h2>
+        <div class="grupos-nav" id="gruposNav"></div>
+        <div class="indicadores-grid" id="indicadoresGrid"></div>
     </div>
 
     <!-- GRÁFICO -->
-    <div class="card hidden" id="panelGrafico">
+    <div class="card hidden" id="cardGrafico">
         <h2 id="tituloGrafico">Gráfico PBC</h2>
-        <div class="chart-controls">
-            <button onclick="toggleYAxis()">Eje Y desde 0</button>
-            <button onclick="toggleLabels()">Ocultar Etiquetas</button>
-            <button onclick="downloadChart()">Descargar Gráfico</button>
-            <button onclick="copyChart()">Copiar Gráfico</button>
-        </div>
-        <div class="range-controls">
-            <h4>Ventana de Visualización</h4>
-            <div class="range-buttons">
-                <button class="range-btn" onclick="mostrarTodo()">Mostrar Todo</button>
-                <button class="range-btn" onclick="mostrarUltimos24()">Últimas 24 semanas</button>
-            </div>
-            <div id="rangeInfo" style="margin-top:10px; font-size:0.9em; color:#555;"></div>
+        <div class="chart-actions">
+            <button class="btn btn-primary" onclick="generarGrafico()">↺ Actualizar</button>
+            <button class="btn btn-secondary" onclick="descargarGrafico()">Descargar PNG</button>
         </div>
         <div class="chart-container">
             <canvas id="pbcChart"></canvas>
         </div>
+        <div id="infoSerie" style="color:#555; font-size:0.9em; margin-top:10px;"></div>
     </div>
 
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -329,13 +268,9 @@
 
     let centros = [];
     let indicadores = [];
+    let indicadorSeleccionado = null;
     let pbcChart = null;
-    let currentResults = null;
-    let rangeStart = 1;
-    let rangeEnd = 1;
-    let yAxisFromZero = false;
-    let showLabels = true;
-    let indicadorActivo = null;
+    let grupoActivo = null;
 
     // ─── UTILIDADES ───────────────────────────────────────────────
     function showAlert(msg, type = 'info') {
@@ -346,7 +281,7 @@
         setTimeout(() => box.style.display = 'none', 4000);
     }
 
-    function poblarSemanas(selectId) {
+    function poblarSemanas(selectId, valorDefault) {
         const sel = document.getElementById(selectId);
         sel.innerHTML = '';
         for (let i = 1; i <= 53; i++) {
@@ -355,17 +290,28 @@
             opt.textContent = `Semana ${i}`;
             sel.appendChild(opt);
         }
+        sel.value = String(valorDefault).padStart(2,'0');
     }
 
-    function getFechaISO(anio, semana) {
-        return `${anio}-W${String(semana).padStart(2,'0')}`;
+    function getSemanaActual() {
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        return Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
     }
 
-    function compararFechasISO(a, b) {
-        return a.localeCompare(b);
+    function getFechaDesde() {
+        const sem = document.getElementById('selSemanaDesde').value;
+        const anio = document.getElementById('inputAnioDesde').value;
+        return `${anio}-W${sem}`;
     }
 
-    // ─── CARGAR DATOS ─────────────────────────────────────────────
+    function getFechaHasta() {
+        const sem = document.getElementById('selSemanaHasta').value;
+        const anio = document.getElementById('inputAnioHasta').value;
+        return `${anio}-W${sem}`;
+    }
+
+    // ─── CARGA INICIAL ────────────────────────────────────────────
     async function cargarCentros() {
         const snap = await getDocs(collection(db, 'centros'));
         centros = [];
@@ -386,216 +332,197 @@
         indicadores = [];
         snap.forEach(d => indicadores.push({ id: d.id, ...d.data() }));
         indicadores.sort((a,b) => a.nombre.localeCompare(b.nombre));
-        renderIndicadores(indicadores);
-        iniciarBuscador();
+
+        renderGrupos();
+
+        // Verificar si viene indicador preseleccionado desde index.html
+        const params = new URLSearchParams(window.location.search);
+        const indId = params.get('indicador');
+        if (indId) {
+            const ind = indicadores.find(i => i.id === indId);
+            if (ind) seleccionarIndicador(ind);
+        }
     }
 
-    // ─── RENDER INDICADORES POR GRUPO ─────────────────────────────
-    function renderIndicadores(lista) {
-        const container = document.getElementById('listaIndicadores');
-        container.innerHTML = '';
+    // ─── NAVEGACIÓN POR GRUPOS ────────────────────────────────────
+    function renderGrupos() {
+        const grupos = [...new Set(indicadores.map(i => i.grupo))].sort();
+        const nav = document.getElementById('gruposNav');
+        nav.innerHTML = '';
 
-        if (lista.length === 0) {
-            container.innerHTML = '<p style="color:#888;">No se encontraron indicadores.</p>';
+        // Botón "Todos"
+        const btnTodos = document.createElement('button');
+        btnTodos.className = 'grupo-btn active';
+        btnTodos.textContent = 'Todos';
+        btnTodos.onclick = () => filtrarPorGrupo(null, btnTodos);
+        nav.appendChild(btnTodos);
+
+        grupos.forEach(grupo => {
+            const btn = document.createElement('button');
+            btn.className = 'grupo-btn';
+            btn.textContent = grupo;
+            btn.onclick = () => filtrarPorGrupo(grupo, btn);
+            nav.appendChild(btn);
+        });
+
+        renderIndicadores(indicadores);
+    }
+
+    function filtrarPorGrupo(grupo, btnClicked) {
+        grupoActivo = grupo;
+        document.querySelectorAll('.grupo-btn').forEach(b => b.classList.remove('active'));
+        btnClicked.classList.add('active');
+        const filtrados = grupo ? indicadores.filter(i => i.grupo === grupo) : indicadores;
+        renderIndicadores(filtrados);
+    }
+
+    function renderIndicadores(lista) {
+        const grid = document.getElementById('indicadoresGrid');
+        grid.innerHTML = '';
+
+        // Agrupar por subgrupo
+        const subgrupos = [...new Set(lista.map(i => i.subgrupo || 'General'))].sort();
+
+        subgrupos.forEach(subgrupo => {
+            const inds = lista.filter(i => (i.subgrupo || 'General') === subgrupo);
+
+            const subgrupoDiv = document.createElement('div');
+            subgrupoDiv.style.gridColumn = '1/-1';
+            subgrupoDiv.innerHTML = `<h3 style="font-size:1em; color:#555; margin-bottom:10px; padding-bottom:5px; border-bottom:1px solid #eee;">${subgrupo}</h3>`;
+            grid.appendChild(subgrupoDiv);
+
+            inds.forEach(ind => {
+                const card = document.createElement('div');
+                card.className = 'indicador-card';
+                card.id = `ind_${ind.id}`;
+
+                const tipo = ind.campo_denominador && ind.campo_denominador !== '1' && ind.campo_denominador !== '' ?
+                    (ind.multiplicador > 1 ? 'Tasa' : 'Índice') : 'Volumen';
+
+                card.innerHTML = `
+                    <h3>${ind.nombre}</h3>
+                    <p>${ind.grupo}${ind.subgrupo ? ' › ' + ind.subgrupo : ''}</p>
+                    <span class="badge">${tipo}</span>
+                `;
+                card.onclick = () => seleccionarIndicador(ind);
+
+                if (indicadorSeleccionado?.id === ind.id) card.classList.add('selected');
+                grid.appendChild(card);
+            });
+        });
+    }
+
+    // ─── SELECCIONAR INDICADOR ────────────────────────────────────
+    function seleccionarIndicador(ind) {
+        indicadorSeleccionado = ind;
+        document.querySelectorAll('.indicador-card').forEach(c => c.classList.remove('selected'));
+        const card = document.getElementById(`ind_${ind.id}`);
+        if (card) card.classList.add('selected');
+        generarGrafico();
+    }
+
+    // ─── GENERAR GRÁFICO PBC ──────────────────────────────────────
+    window.generarGrafico = async function() {
+        if (!indicadorSeleccionado) {
+            showAlert('Seleccione un indicador.', 'info');
             return;
         }
-
-        // Agrupar por grupo y subgrupo
-        const grupos = {};
-        lista.forEach(ind => {
-            const g = ind.grupo || 'Sin grupo';
-            const sg = ind.subgrupo || 'General';
-            if (!grupos[g]) grupos[g] = {};
-            if (!grupos[g][sg]) grupos[g][sg] = [];
-            grupos[g][sg].push(ind);
-        });
-
-        Object.keys(grupos).sort().forEach(grupo => {
-            const seccion = document.createElement('div');
-            seccion.className = 'grupo-section';
-
-            const tituloGrupo = document.createElement('div');
-            tituloGrupo.className = 'grupo-titulo';
-            tituloGrupo.textContent = grupo;
-            seccion.appendChild(tituloGrupo);
-
-            Object.keys(grupos[grupo]).sort().forEach(subgrupo => {
-                const tituloSub = document.createElement('div');
-                tituloSub.className = 'subgrupo-titulo';
-                tituloSub.textContent = subgrupo;
-                seccion.appendChild(tituloSub);
-
-                const grid = document.createElement('div');
-                grid.className = 'indicadores-grid';
-
-                grupos[grupo][subgrupo].forEach(ind => {
-                    const card = document.createElement('div');
-                    card.className = 'indicador-card';
-                    card.id = `ind_${ind.id}`;
-                    card.innerHTML = `
-                        <h4>${ind.nombre}</h4>
-                        <p>${ind.campo_numerador}${ind.campo_denominador ? ' ÷ ' + ind.campo_denominador : ''} × ${ind.multiplicador}</p>
-                    `;
-                    card.addEventListener('click', () => seleccionarIndicador(ind));
-                    grid.appendChild(card);
-                });
-
-                seccion.appendChild(grid);
-            });
-
-            container.appendChild(seccion);
-        });
-    }
-
-    // ─── BUSCADOR ─────────────────────────────────────────────────
-    function iniciarBuscador() {
-        const input = document.getElementById('inputBuscadorInd');
-        const sugerencias = document.getElementById('sugerenciasInd');
-
-        input.addEventListener('input', function() {
-            const texto = this.value.toLowerCase().trim();
-
-            if (texto.length < 1) {
-                sugerencias.style.display = 'none';
-                renderIndicadores(indicadores);
-                return;
-            }
-
-            const coincidencias = indicadores.filter(ind =>
-                ind.nombre.toLowerCase().includes(texto) ||
-                (ind.grupo || '').toLowerCase().includes(texto) ||
-                (ind.subgrupo || '').toLowerCase().includes(texto)
-            );
-
-            renderIndicadores(coincidencias);
-
-            if (coincidencias.length === 0) {
-                sugerencias.style.display = 'none';
-                return;
-            }
-
-            sugerencias.innerHTML = '';
-            sugerencias.style.display = 'block';
-
-            coincidencias.slice(0, 8).forEach(ind => {
-                const item = document.createElement('div');
-                item.className = 'sug-item';
-                item.innerHTML = `
-                    <div class="sug-nombre">${ind.nombre}</div>
-                    <div class="sug-meta">${ind.grupo || ''}${ind.subgrupo ? ' › ' + ind.subgrupo : ''}</div>
-                `;
-                item.addEventListener('click', () => {
-                    seleccionarIndicador(ind);
-                    input.value = '';
-                    sugerencias.style.display = 'none';
-                    renderIndicadores(indicadores);
-                });
-                sugerencias.appendChild(item);
-            });
-        });
-
-        document.addEventListener('click', e => {
-            if (!e.target.closest('.buscador-ind')) sugerencias.style.display = 'none';
-        });
-    }
-
-    // ─── SELECCIONAR INDICADOR Y GENERAR GRÁFICO ──────────────────
-    async function seleccionarIndicador(ind) {
-        // Marcar seleccionado
-        document.querySelectorAll('.indicador-card').forEach(c => c.classList.remove('seleccionado'));
-        const card = document.getElementById(`ind_${ind.id}`);
-        if (card) {
-            card.classList.add('seleccionado');
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        indicadorActivo = ind;
 
         const centroId = document.getElementById('selCentro').value;
-        if (!centroId) {
-            showAlert('Seleccione un centro antes de generar el gráfico.', 'error');
+        const fechaDesde = getFechaDesde();
+        const fechaHasta = getFechaHasta();
+
+        if (fechaDesde > fechaHasta) {
+            showAlert('La fecha desde no puede ser mayor que la fecha hasta.', 'error');
             return;
         }
 
-        const anioInicio = parseInt(document.getElementById('inputAnioInicio').value);
-        const semInicio = parseInt(document.getElementById('selSemanaInicio').value);
-        const anioFin = parseInt(document.getElementById('inputAnioFin').value);
-        const semFin = parseInt(document.getElementById('selSemanaFin').value);
-
-        const fechaDesde = getFechaISO(anioInicio, semInicio);
-        const fechaHasta = getFechaISO(anioFin, semFin);
-
-        showAlert('Cargando datos...', 'info');
-
-        try {
-            // Consultar registros del centro en el rango de fechas
-            const q = query(
-                collection(db, 'registros_semanales'),
+        // Consultar registros
+        let q;
+        if (centroId) {
+            q = query(collection(db, 'registros_semanales'),
                 where('centro_id', '==', centroId)
             );
-            const snap = await getDocs(q);
-            let registros = [];
-            snap.forEach(d => registros.push(d.data()));
+        } else {
+            q = query(collection(db, 'registros_semanales'));
+        }
 
-            // Filtrar por rango de fechas
-            registros = registros.filter(r =>
-                compararFechasISO(r.fecha, fechaDesde) >= 0 &&
-                compararFechasISO(r.fecha, fechaHasta) <= 0
-            );
+        const snap = await getDocs(q);
+        let registros = [];
+        snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
 
-            // Ordenar por fecha
-            registros.sort((a,b) => compararFechasISO(a.fecha, b.fecha));
+        // Filtrar por rango de fechas
+        registros = registros.filter(r => r.fecha >= fechaDesde && r.fecha <= fechaHasta);
 
-            if (registros.length < 8) {
-                showAlert(`Se necesitan al menos 8 semanas de datos. Se encontraron ${registros.length}.`, 'error');
-                return;
+        // Ordenar por fecha
+        registros.sort((a,b) => a.fecha.localeCompare(b.fecha));
+
+        if (registros.length === 0) {
+            showAlert('No hay datos para el período y centro seleccionados.', 'info');
+            return;
+        }
+
+        // Calcular serie de valores
+        const ind = indicadorSeleccionado;
+        const denominadorCampo = ind.campo_denominador;
+        const multiplicador = parseFloat(ind.multiplicador) || 1;
+
+        const labels = [];
+        const valores = [];
+
+        registros.forEach(r => {
+            const num = parseFloat(r[ind.campo_numerador]);
+            let den;
+
+            if (!denominadorCampo || denominadorCampo === '' || denominadorCampo === '1') {
+                den = 1;
+            } else {
+                den = parseFloat(r[denominadorCampo]);
             }
 
-            // Calcular valores del indicador
-            const valores = registros.map(r => {
-                const num = r[ind.campo_numerador] || 0;
-                const den = ind.campo_denominador ? (r[ind.campo_denominador] || 1) : 1;
-                const mult = ind.multiplicador || 1;
-                return parseFloat((num / den * mult).toFixed(6));
-            });
+            if (isNaN(num) || isNaN(den) || den === 0) return;
 
-            const periodos = registros.map(r => r.fecha);
+            const valor = (num / den) * multiplicador;
+            labels.push(r.fecha);
+            valores.push(valor);
+        });
 
-            // Calcular PBC
-            currentResults = calcPBC(valores, periodos);
-            rangeStart = 1;
-            rangeEnd = currentResults.length;
-
-            // Mostrar gráfico
-            document.getElementById('tituloGrafico').textContent = `${ind.nombre} — ${centros.find(c=>c.id===centroId)?.nombre}`;
-            document.getElementById('panelGrafico').classList.remove('hidden');
-            document.getElementById('panelGrafico').scrollIntoView({ behavior: 'smooth' });
-
-            actualizarRangeInfo();
-            renderChart();
-            showAlert(`Gráfico generado con ${registros.length} semanas.`, 'success');
-
-        } catch(e) {
-            showAlert('Error al cargar datos: ' + e.message, 'error');
+        if (valores.length < 8) {
+            showAlert(`Se necesitan al menos 8 puntos de datos. Solo hay ${valores.length} disponibles para los filtros seleccionados.`, 'error');
+            return;
         }
+
+        // Calcular PBC
+        const resultados = calcularPBC(valores, labels);
+
+        // Mostrar gráfico
+        document.getElementById('cardGrafico').classList.remove('hidden');
+        document.getElementById('tituloGrafico').textContent = ind.nombre;
+        document.getElementById('infoSerie').textContent =
+            `${valores.length} semanas | Centro: ${centroId ? centros.find(c=>c.id===centroId)?.nombre : 'Todos'} | ${fechaDesde} a ${fechaHasta}`;
+
+        renderPBC(resultados, labels, ind.nombre);
+
+        // Scroll al gráfico
+        document.getElementById('cardGrafico').scrollIntoView({ behavior: 'smooth' });
     }
 
     // ─── MOTOR PBC ────────────────────────────────────────────────
-    function calcPBC(data, periodos) {
+    function calcularPBC(data, labels) {
+        const factor = 3 / 1.128;
         const results = data.map((dp, i) => ({
             period: i + 1,
-            date: periodos[i],
-            dp,
-            dpa: null, mr: null, mra: null,
+            date: labels[i],
+            dp, dpa: null, mr: null, mra: null,
             lcl: null, dla: null, dua: null, ucl: null, mrucl: null,
             signal: null, ruleApplied: null
         }));
 
+        // Línea base: primeros 8 puntos
         const dpa = data.slice(0,8).reduce((a,b) => a+b) / 8;
         const mrs = [];
         for (let i = 1; i < 8; i++) mrs.push(Math.abs(data[i] - data[i-1]));
         const mra = mrs.reduce((a,b) => a+b) / mrs.length;
-        const factor = 3 / 1.128;
         const lcl = dpa - mra * factor;
         const ucl = dpa + mra * factor;
         const mrucl = mra * 3.27;
@@ -606,129 +533,119 @@
             results[i].dpa = dpa; results[i].mra = mra;
             results[i].lcl = lcl; results[i].ucl = ucl;
             results[i].mrucl = mrucl; results[i].dla = dla;
-            results[i].dua = dua; results[i].ruleApplied = 'Línea Base';
+            results[i].dua = dua; results[i].ruleApplied = 'base';
             if (i > 0) results[i].mr = Math.abs(data[i] - data[i-1]);
         }
 
         for (let i = 8; i < data.length; i++) {
             const curr = data[i];
-            const prev = data[i-1];
-            const mr = Math.abs(curr - prev);
+            const prev = results[i-1];
+            const mr = Math.abs(curr - data[i-1]);
             results[i].mr = mr;
 
-            const ref = results[i-1];
-            let triggered = false;
+            let ruleTriggered = false;
 
-            if ((curr > ref.ucl || curr < ref.lcl) && mr > ref.mrucl) results[i].signal = 1;
+            // Señal Regla 1
+            if ((curr > prev.ucl || curr < prev.lcl) && mr > prev.mrucl) results[i].signal = 1;
 
+            // Regla 2: 8 puntos seguidos sobre o bajo DPA
             if (i >= 7) {
                 const last8 = data.slice(i-7, i+1);
-                if (last8.every(dp => dp > ref.dpa) || last8.every(dp => dp < ref.dpa)) {
-                    triggered = true;
-                    const newDpa = last8.reduce((a,b) => a+b) / 8;
-                    const newMrs = [Math.abs(data[i-7] - (i-8 >= 0 ? data[i-8] : data[i-7]))];
-                    for (let j = 1; j < 8; j++) newMrs.push(Math.abs(last8[j] - last8[j-1]));
-                    const newMra = newMrs.reduce((a,b) => a+b) / newMrs.length;
-                    const newLcl = newDpa - newMra * factor;
-                    const newUcl = newDpa + newMra * factor;
-                    const newMrucl = newMra * 3.27;
+                if (last8.every(dp => dp > prev.dpa) || last8.every(dp => dp < prev.dpa)) {
+                    ruleTriggered = true;
+                    const newDPA = last8.reduce((a,b) => a+b) / 8;
+                    const newMRs = [Math.abs(data[i-7] - (i-8 >= 0 ? data[i-8] : data[i-7]))];
+                    for (let j = 1; j < 8; j++) newMRs.push(Math.abs(last8[j] - last8[j-1]));
+                    const newMRA = newMRs.reduce((a,b) => a+b) / newMRs.length;
+                    const newLCL = newDPA - newMRA * factor;
+                    const newUCL = newDPA + newMRA * factor;
                     for (let j = i-7; j <= i; j++) {
-                        results[j].dpa = newDpa; results[j].mra = newMra;
-                        results[j].lcl = newLcl; results[j].ucl = newUcl;
-                        results[j].mrucl = newMrucl;
-                        results[j].dla = (newLcl + newDpa) / 2;
-                        results[j].dua = (newDpa + newUcl) / 2;
-                        results[j].ruleApplied = 'Regla 2';
+                        results[j].dpa = newDPA; results[j].mra = newMRA;
+                        results[j].lcl = newLCL; results[j].ucl = newUCL;
+                        results[j].mrucl = newMRA * 3.27;
+                        results[j].dla = (newLCL + newDPA) / 2;
+                        results[j].dua = (newDPA + newUCL) / 2;
+                        results[j].ruleApplied = 'regla2';
                     }
                 }
             }
 
-            if (!triggered && i >= 3) {
+            // Regla 3: 3 de 4 sobre DUA o bajo DLA
+            if (!ruleTriggered && i >= 3) {
                 const last4 = data.slice(i-3, i+1);
-                const aboveDua = last4.filter(dp => dp > ref.dua).length;
-                const belowDla = last4.filter(dp => dp < ref.dla).length;
-                if (aboveDua >= 3 || belowDla >= 3) {
-                    triggered = true;
-                    const newDpa = last4.reduce((a,b) => a+b) / 4;
-                    const newMrs = [Math.abs(data[i-3] - (i-4 >= 0 ? data[i-4] : data[i-3]))];
-                    for (let j = 1; j < 4; j++) newMrs.push(Math.abs(last4[j] - last4[j-1]));
-                    const newMra = newMrs.reduce((a,b) => a+b) / newMrs.length;
-                    const newLcl = newDpa - newMra * factor;
-                    const newUcl = newDpa + newMra * factor;
-                    const newMrucl = newMra * 3.27;
+                if (last4.filter(dp => dp > prev.dua).length >= 3 ||
+                    last4.filter(dp => dp < prev.dla).length >= 3) {
+                    ruleTriggered = true;
+                    const newDPA = last4.reduce((a,b) => a+b) / 4;
+                    const newMRs = [Math.abs(data[i-3] - (i-4 >= 0 ? data[i-4] : data[i-3]))];
+                    for (let j = 1; j < 4; j++) newMRs.push(Math.abs(last4[j] - last4[j-1]));
+                    const newMRA = newMRs.reduce((a,b) => a+b) / newMRs.length;
+                    const newLCL = newDPA - newMRA * factor;
+                    const newUCL = newDPA + newMRA * factor;
                     for (let j = i-3; j <= i; j++) {
-                        results[j].dpa = newDpa; results[j].mra = newMra;
-                        results[j].lcl = newLcl; results[j].ucl = newUcl;
-                        results[j].mrucl = newMrucl;
-                        results[j].dla = (newLcl + newDpa) / 2;
-                        results[j].dua = (newDpa + newUcl) / 2;
-                        results[j].ruleApplied = 'Regla 3';
+                        results[j].dpa = newDPA; results[j].mra = newMRA;
+                        results[j].lcl = newLCL; results[j].ucl = newUCL;
+                        results[j].mrucl = newMRA * 3.27;
+                        results[j].dla = (newLCL + newDPA) / 2;
+                        results[j].dua = (newDPA + newUCL) / 2;
+                        results[j].ruleApplied = 'regla3';
                     }
                 }
             }
 
-            if (!triggered) {
-                results[i].dpa = ref.dpa; results[i].mra = ref.mra;
-                results[i].lcl = ref.lcl; results[i].ucl = ref.ucl;
-                results[i].mrucl = ref.mrucl; results[i].dla = ref.dla;
-                results[i].dua = ref.dua; results[i].ruleApplied = ref.ruleApplied;
+            if (!ruleTriggered) {
+                results[i].dpa = prev.dpa; results[i].mra = prev.mra;
+                results[i].lcl = prev.lcl; results[i].ucl = prev.ucl;
+                results[i].mrucl = prev.mrucl; results[i].dla = prev.dla;
+                results[i].dua = prev.dua; results[i].ruleApplied = prev.ruleApplied;
             }
         }
 
         return results;
     }
 
-    // ─── RENDER CHART ─────────────────────────────────────────────
-    function renderChart() {
-        if (!currentResults) return;
-
-        const filtered = currentResults.slice(rangeStart - 1, rangeEnd);
-        const ctx = document.getElementById('pbcChart').getContext('2d');
-
+    // ─── RENDERIZAR GRÁFICO ───────────────────────────────────────
+    function renderPBC(results, labels, titulo) {
         if (pbcChart) pbcChart.destroy();
 
-        const labels = filtered.map(r => r.date);
-        const dpData = filtered.map(r => r.dp);
-        const dpaData = filtered.map(r => r.dpa);
-        const uclData = filtered.map(r => r.ucl);
-        const lclData = filtered.map(r => r.lcl);
-        const pointColors = filtered.map(r => r.signal === 1 ? '#FF0000' : '#4169E1');
+        const ctx = document.getElementById('pbcChart').getContext('2d');
+        const dpColors = results.map(r => r.signal === 1 ? '#FF0000' : '#4169E1');
 
         pbcChart = new Chart(ctx, {
             type: 'line',
             plugins: [ChartDataLabels],
             data: {
-                labels,
+                labels: results.map(r => r.date),
                 datasets: [
                     {
-                        label: indicadorActivo?.nombre || 'DP',
-                        data: dpData,
+                        label: titulo,
+                        data: results.map(r => r.dp),
                         borderColor: '#4169E1',
                         borderWidth: 2,
-                        pointBackgroundColor: pointColors,
-                        pointBorderColor: pointColors,
-                        pointRadius: 3,
+                        pointBackgroundColor: dpColors,
+                        pointBorderColor: dpColors,
+                        pointRadius: 4,
                         tension: 0
                     },
                     {
                         label: 'Línea Central',
-                        data: dpaData,
+                        data: results.map(r => r.dpa),
                         borderColor: '#228B22',
                         borderWidth: 2,
                         pointRadius: 0,
                         tension: 0
                     },
                     {
-                        label: 'Límite Superior',
-                        data: uclData,
+                        label: 'LCS',
+                        data: results.map(r => r.ucl),
                         borderColor: '#DC143C',
                         borderWidth: 2,
                         pointRadius: 0,
                         tension: 0
                     },
                     {
-                        label: 'Límite Inferior',
-                        data: lclData,
+                        label: 'LCI',
+                        data: results.map(r => r.lcl),
                         borderColor: '#DC143C',
                         borderWidth: 2,
                         pointRadius: 0,
@@ -742,87 +659,37 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: document.getElementById('tituloGrafico').textContent,
-                        font: { size: 14, weight: 'bold' }
+                        text: titulo,
+                        font: { size: 16, weight: 'bold' }
                     },
                     legend: { display: true, position: 'top' },
-                    tooltip: { mode: 'index', intersect: false },
                     datalabels: {
-                        display: ctx => ctx.datasetIndex === 0 && showLabels,
+                        display: (ctx) => ctx.datasetIndex === 0,
                         align: 'top',
                         offset: 6,
-                        color: ctx => filtered[ctx.dataIndex]?.signal === 1 ? '#FF0000' : '#4169E1',
+                        color: (ctx) => results[ctx.dataIndex].signal === 1 ? '#FF0000' : '#4169E1',
                         font: { size: 9, weight: 'bold' },
-                        formatter: val => val.toFixed(2)
+                        formatter: (value) => value.toFixed(2)
                     }
                 },
                 scales: {
                     x: {
                         ticks: { maxRotation: 45 },
-                        grid: { display: false },
-                        title: { display: true, text: 'Semanas ISO', font: { weight: 'bold' } }
+                        grid: { display: false }
                     },
-                    y: {
-                        beginAtZero: yAxisFromZero,
-                        min: yAxisFromZero ? 0 : undefined,
-                        title: { display: true, text: indicadorActivo?.nombre || 'Valor', font: { weight: 'bold' } }
-                    }
+                    y: { beginAtZero: false }
                 }
             }
         });
     }
 
-    // ─── CONTROLES ────────────────────────────────────────────────
-    window.toggleYAxis = function() {
-        yAxisFromZero = !yAxisFromZero;
-        renderChart();
-    }
-
-    window.toggleLabels = function() {
-        showLabels = !showLabels;
-        renderChart();
-    }
-
-    window.mostrarTodo = function() {
-        if (!currentResults) return;
-        rangeStart = 1;
-        rangeEnd = currentResults.length;
-        actualizarRangeInfo();
-        renderChart();
-    }
-
-    window.mostrarUltimos24 = function() {
-        if (!currentResults) return;
-        rangeEnd = currentResults.length;
-        rangeStart = Math.max(1, rangeEnd - 23);
-        actualizarRangeInfo();
-        renderChart();
-    }
-
-    function actualizarRangeInfo() {
-        if (!currentResults) return;
-        document.getElementById('rangeInfo').textContent =
-            `Visualizando semanas ${rangeStart} a ${rangeEnd} de ${currentResults.length} totales`;
-    }
-
-    window.downloadChart = function() {
+    // ─── DESCARGAR GRÁFICO ────────────────────────────────────────
+    window.descargarGrafico = function() {
         if (!pbcChart) return;
         const link = document.createElement('a');
-        link.download = `${indicadorActivo?.nombre || 'grafico'}.png`;
+        link.download = `${indicadorSeleccionado?.nombre || 'grafico'}.png`;
         link.href = pbcChart.toBase64Image('image/png', 1.0);
         link.click();
-    }
-
-    window.copyChart = async function() {
-        if (!pbcChart) return;
-        pbcChart.canvas.toBlob(async blob => {
-            try {
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                showAlert('Gráfico copiado al portapapeles.', 'success');
-            } catch(e) {
-                showAlert('No se pudo copiar. Use clic derecho en el gráfico.', 'error');
-            }
-        });
     }
 
     // ─── CERRAR SESIÓN ────────────────────────────────────────────
@@ -841,35 +708,21 @@
 
         const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
         if (usuario.nombre) {
-            document.getElementById('headerSubtitle').textContent = `${usuario.nombre} — Semanas ISO`;
+            document.getElementById('headerSubtitle').textContent = `Bienvenido, ${usuario.nombre}`;
         }
 
-        // Verificar si viene con indicador preseleccionado desde index.html
-        const params = new URLSearchParams(window.location.search);
-        const indId = params.get('indicador');
+        // Semanas por defecto: últimas 24 semanas
+        const semActual = getSemanaActual();
+        const anioActual = new Date().getFullYear();
+        const semDesde = semActual > 24 ? semActual - 24 : 1;
 
-        poblarSemanas('selSemanaInicio');
-        poblarSemanas('selSemanaFin');
-
-        // Fechas por defecto
-        const now = new Date();
-        document.getElementById('inputAnioFin').value = now.getFullYear();
-        document.getElementById('inputAnioInicio').value = now.getFullYear() - 1;
-
-        // Semana actual como fin
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
-        document.getElementById('selSemanaFin').value = String(Math.max(1, weekNum - 1)).padStart(2,'0');
-        document.getElementById('selSemanaInicio').value = '01';
+        poblarSemanas('selSemanaDesde', semDesde);
+        poblarSemanas('selSemanaHasta', semActual - 1);
+        document.getElementById('inputAnioDesde').value = anioActual;
+        document.getElementById('inputAnioHasta').value = anioActual;
 
         await cargarCentros();
         await cargarIndicadores();
-
-        // Si viene con indicador desde buscador del home
-        if (indId) {
-            const ind = indicadores.find(i => i.id === indId);
-            if (ind) seleccionarIndicador(ind);
-        }
     });
 </script>
 </body>
