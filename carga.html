@@ -1388,8 +1388,16 @@ async function iniciarAutocompletadoConsol() {
         }
         const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
         // Restringir acceso solo a admin
-        if (usuario.rol !== 'admin') {
+        if (usuario.rol === 'operador') {
             window.location.href = 'carga_centro.html';
+            return;
+        }
+        if (usuario.rol === 'viewer') {
+            window.location.href = 'index.html';
+            return;
+        }
+        if (usuario.rol !== 'admin') {
+            window.location.href = 'login.html';
             return;
         }
         cargarCentros();
@@ -1407,6 +1415,7 @@ async function iniciarAutocompletadoConsol() {
 </body>
 
 </html>
+
 
 
 
