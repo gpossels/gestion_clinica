@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indicadores Mensuales</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            background: white;
+            border: 2px solid black;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 5px; }
+        .header p { color: #555; }
+        .header-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            background: white;
+            border: 2px solid black;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .nav-btn:hover { background: #f0f0f0; }
+        .nav-btn.rojo { border-color: #dc3545; color: #dc3545; }
+        .nav-btn.rojo:hover { background: #f8d7da; }
+        .card {
+            background: white;
+            border: 2px solid black;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .form-col { flex: 1; min-width: 180px; }
+        .form-col label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-primary:hover { background: #1558b0; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .alert {
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            display: none;
+        }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .hidden { display: none; }
+        .grupos-nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .grupo-btn {
+            padding: 8px 16px;
+            border: 2px solid #1a73e8;
+            border-radius: 20px;
+            background: white;
+            color: #1a73e8;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        .grupo-btn.active { background: #1a73e8; color: white; }
+        .indicadores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .indicador-card {
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .indicador-card:hover { border-color: #1a73e8; background: #e8f0fe; }
+        .indicador-card.selected { border-color: #1a73e8; background: #e8f0fe; }
+        .indicador-card h3 { font-size: 1em; margin-bottom: 5px; }
+        .indicador-card p { font-size: 0.85em; color: #666; }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-bottom: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .chart-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: bold;
+            background: #e8f0fe;
+            color: #1a73e8;
+            margin-left: 8px;
+        }
+        @media (max-width: 600px) {
+            .form-row { flex-direction: column; }
+            .chart-container { height: 350px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>📆 Indicadores Mensuales</h1>
+        <p id="headerSubtitle">Gráficos por mes calendario</p>
+        <div class="header-actions">
+            <button class="nav-btn" onclick="window.location.href='index.html'">← Inicio</button>
+            <button class="nav-btn rojo" onclick="cerrarSesion()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <!-- ALERTA -->
+    <div id="alertBox" class="alert"></div>
+
+    <!-- FILTROS -->
+    <div class="card">
+        <h2>Filtros</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Red</label>
+                <select id="selRed" onchange="filtrarCentrosPorRed()">
+                    <option value="">-- Todas las redes --</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Centro</label>
+                <select id="selCentro">
+                    <option value="">-- Todos los centros --</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Desde mes</label>
+                <select id="selMesDesde"></select>
+            </div>
+            <div class="form-col">
+                <label>del Año</label>
+                <input type="number" id="inputAnioDesde" min="2000" max="2100">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Hasta mes</label>
+                <select id="selMesHasta"></select>
+            </div>
+            <div class="form-col">
+                <label>del Año</label>
+                <input type="number" id="inputAnioHasta" min="2000" max="2100">
+            </div>
+        </div>
+    </div>
+
+    <!-- INDICADORES -->
+    <div class="card">
+        <h2>Indicadores</h2>
+        <div class="grupos-nav" id="gruposNav"></div>
+        <div class="indicadores-grid" id="indicadoresGrid"></div>
+    </div>
+
+    <!-- GRÁFICO PBC -->
+    <div class="card hidden" id="cardGrafico">
+        <h2 id="tituloGrafico">Gráfico PBC</h2>
+        <div class="chart-actions">
+            <button class="btn btn-primary" onclick="generarGrafico()">↺ Actualizar</button>
+            <button class="btn btn-secondary" onclick="descargarGrafico()">Descargar PNG</button>
+        </div>
+        <div class="chart-container">
+            <canvas id="pbcChart"></canvas>
+        </div>
+        <div id="infoSerie" style="color:#555; font-size:0.9em; margin-top:10px;"></div>
+    </div>
+
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBgxwwm7Q0kf0DgkjZip0rIvobRnXVJUXw",
+        authDomain: "indicadores-gestion-clinica.firebaseapp.com",
+        projectId: "indicadores-gestion-clinica",
+        storageBucket: "indicadores-gestion-clinica.firebasestorage.app",
+        messagingSenderId: "1221554815",
+        appId: "1:1221554815:web:f304f787f2a953ce59454a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let centros = [];
+    let indicadores = [];
+    let redes = [];
+    let indicadorSeleccionado = null;
+    let pbcChart = null;
+
+    const MESES = [
+        'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+    ];
+
+    // ─── UTILIDADES ───────────────────────────────────────────────
+    function showAlert(msg, type = 'info') {
+        const box = document.getElementById('alertBox');
+        box.className = `alert alert-${type}`;
+        box.textContent = msg;
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 4000);
+    }
+
+    function poblarMeses(selectId, valorDefault) {
+        const sel = document.getElementById(selectId);
+        sel.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            const opt = document.createElement('option');
+            opt.value = String(i).padStart(2,'0');
+            opt.textContent = MESES[i-1];
+            sel.appendChild(opt);
+        }
+        sel.value = String(valorDefault).padStart(2,'0');
+    }
+
+    function getFechaDesde() {
+        const mes = document.getElementById('selMesDesde').value;
+        const anio = document.getElementById('inputAnioDesde').value;
+        return `${anio}-${mes}`;
+    }
+
+    function getFechaHasta() {
+        const mes = document.getElementById('selMesHasta').value;
+        const anio = document.getElementById('inputAnioHasta').value;
+        return `${anio}-${mes}`;
+    }
+
+    // ─── CARGA INICIAL ────────────────────────────────────────────
+    async function cargarRedes() {
+        const snap = await getDocs(collection(db, 'redes'));
+        redes = [];
+        snap.forEach(d => redes.push({ id: d.id, ...d.data() }));
+        redes.sort((a,b) => a.nombre.localeCompare(b.nombre));
+        const sel = document.getElementById('selRed');
+        redes.filter(r => r.activo !== false).forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = r.nombre;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function cargarCentros() {
+        const snap = await getDocs(collection(db, 'centros'));
+        centros = [];
+        snap.forEach(d => centros.push({ id: d.id, ...d.data() }));
+        centros.sort((a,b) => a.nombre.localeCompare(b.nombre));
+        poblarSelCentros('');
+    }
+
+    function poblarSelCentros(redId) {
+        const sel = document.getElementById('selCentro');
+        sel.innerHTML = '<option value="">-- Todos los centros --</option>';
+        const filtrados = redId
+            ? centros.filter(c => c.activo !== false && c.red_id === redId)
+            : centros.filter(c => c.activo !== false);
+        filtrados.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.nombre;
+            sel.appendChild(opt);
+        });
+    }
+
+    window.filtrarCentrosPorRed = function() {
+        poblarSelCentros(document.getElementById('selRed').value);
+    }
+
+    async function cargarIndicadores() {
+        const snap = await getDocs(collection(db, 'indicadores_mensuales'));
+        indicadores = [];
+        snap.forEach(d => indicadores.push({ id: d.id, ...d.data() }));
+        indicadores.sort((a,b) => a.nombre.localeCompare(b.nombre));
+        renderGrupos();
+
+        const params = new URLSearchParams(window.location.search);
+        const indId = params.get('indicador');
+        if (indId) {
+            const ind = indicadores.find(i => i.id === indId);
+            if (ind) seleccionarIndicador(ind);
+        }
+    }
+
+    // ─── GRUPOS E INDICADORES ─────────────────────────────────────
+    function renderGrupos() {
+        const grupos = [...new Set(indicadores.map(i => i.grupo))].sort();
+        const nav = document.getElementById('gruposNav');
+        nav.innerHTML = '';
+
+        const btnTodos = document.createElement('button');
+        btnTodos.className = 'grupo-btn active';
+        btnTodos.textContent = 'Todos';
+        btnTodos.onclick = () => filtrarPorGrupo(null, btnTodos);
+        nav.appendChild(btnTodos);
+
+        grupos.forEach(grupo => {
+            const btn = document.createElement('button');
+            btn.className = 'grupo-btn';
+            btn.textContent = grupo;
+            btn.onclick = () => filtrarPorGrupo(grupo, btn);
+            nav.appendChild(btn);
+        });
+
+        renderIndicadores(indicadores);
+    }
+
+    function filtrarPorGrupo(grupo, btnClicked) {
+        document.querySelectorAll('.grupo-btn').forEach(b => b.classList.remove('active'));
+        btnClicked.classList.add('active');
+        renderIndicadores(grupo ? indicadores.filter(i => i.grupo === grupo) : indicadores);
+    }
+
+    function renderIndicadores(lista) {
+        const grid = document.getElementById('indicadoresGrid');
+        grid.innerHTML = '';
+
+        const subgrupos = [...new Set(lista.map(i => i.subgrupo || 'General'))].sort();
+
+        subgrupos.forEach(subgrupo => {
+            const inds = lista.filter(i => (i.subgrupo || 'General') === subgrupo);
+
+            const div = document.createElement('div');
+            div.style.gridColumn = '1/-1';
+            div.innerHTML = `<h3 style="font-size:1em; color:#555; margin-bottom:10px; padding-bottom:5px; border-bottom:1px solid #eee;">${subgrupo}</h3>`;
+            grid.appendChild(div);
+
+            inds.forEach(ind => {
+                const card = document.createElement('div');
+                card.className = 'indicador-card';
+                card.id = `ind_${ind.id}`;
+
+                const tipo = ind.campo_denominador && ind.campo_denominador !== '1' && ind.campo_denominador !== ''
+                    ? (ind.multiplicador > 1 ? 'Tasa' : 'Índice') : 'Volumen';
+
+                card.innerHTML = `
+                    <h3>${ind.nombre}</h3>
+                    <p>${ind.grupo}${ind.subgrupo ? ' › ' + ind.subgrupo : ''}</p>
+                    <span class="badge">${tipo}</span>
+                `;
+                card.onclick = () => seleccionarIndicador(ind);
+                if (indicadorSeleccionado?.id === ind.id) card.classList.add('selected');
+                grid.appendChild(card);
+            });
+        });
+    }
+
+    // ─── SELECCIONAR INDICADOR ────────────────────────────────────
+    function seleccionarIndicador(ind) {
+        indicadorSeleccionado = ind;
+        document.querySelectorAll('.indicador-card').forEach(c => c.classList.remove('selected'));
+        const card = document.getElementById(`ind_${ind.id}`);
+        if (card) card.classList.add('selected');
+        generarGrafico();
+    }
+
+    // ─── GENERAR GRÁFICO PBC ──────────────────────────────────────
+    window.generarGrafico = async function() {
+        if (!indicadorSeleccionado) {
+            showAlert('Seleccione un indicador.', 'info');
+            return;
+        }
+
+        const centroId = document.getElementById('selCentro').value;
+        const fechaDesde = getFechaDesde();
+        const fechaHasta = getFechaHasta();
+
+        if (fechaDesde > fechaHasta) {
+            showAlert('La fecha desde no puede ser mayor que la fecha hasta.', 'error');
+            return;
+        }
+
+        let q = centroId
+            ? query(collection(db, 'registros_mensuales'), where('centro_id', '==', centroId))
+            : query(collection(db, 'registros_mensuales'));
+
+        const snap = await getDocs(q);
+        let registros = [];
+        snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
+
+        registros = registros.filter(r => r.fecha >= fechaDesde && r.fecha <= fechaHasta);
+        registros.sort((a,b) => a.fecha.localeCompare(b.fecha));
+
+        if (registros.length === 0) {
+            showAlert('No hay datos para el período y centro seleccionados.', 'info');
+            return;
+        }
+
+        const ind = indicadorSeleccionado;
+        const denominadorCampo = ind.campo_denominador;
+        const multiplicador = parseFloat(ind.multiplicador) || 1;
+
+        const labels = [];
+        const valores = [];
+
+        registros.forEach(r => {
+            const num = parseFloat(r[ind.campo_numerador]);
+            let den = (!denominadorCampo || denominadorCampo === '' || denominadorCampo === '1')
+                ? 1 : parseFloat(r[denominadorCampo]);
+            if (isNaN(num) || isNaN(den) || den === 0) return;
+            const [anio, mes] = r.fecha.split('-');
+            labels.push(`${MESES[parseInt(mes)-1].slice(0,3)} ${anio}`);
+            valores.push((num / den) * multiplicador);
+        });
+
+        if (valores.length < 8) {
+            showAlert(`Se necesitan al menos 8 puntos de datos. Solo hay ${valores.length} disponibles.`, 'error');
+            return;
+        }
+
+        const resultados = calcularPBC(valores, labels);
+
+        document.getElementById('cardGrafico').classList.remove('hidden');
+        document.getElementById('tituloGrafico').textContent = ind.nombre;
+        document.getElementById('infoSerie').textContent =
+            `${valores.length} meses | Centro: ${centroId ? centros.find(c=>c.id===centroId)?.nombre : 'Todos'} | ${fechaDesde} a ${fechaHasta}`;
+
+        renderPBC(resultados, labels, ind.nombre);
+        document.getElementById('cardGrafico').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ─── MOTOR PBC ────────────────────────────────────────────────
+    function calcularPBC(data, labels) {
+        const factor = 3 / 1.128;
+        const results = data.map((dp, i) => ({
+            period: i + 1, date: labels[i], dp,
+            dpa: null, mr: null, mra: null,
+            lcl: null, dla: null, dua: null, ucl: null, mrucl: null,
+            signal: null, ruleApplied: null
+        }));
+
+        const dpa = data.slice(0,8).reduce((a,b) => a+b) / 8;
+        const mrs = [];
+        for (let i = 1; i < 8; i++) mrs.push(Math.abs(data[i] - data[i-1]));
+        const mra = mrs.reduce((a,b) => a+b) / mrs.length;
+        const lcl = dpa - mra * factor;
+        const ucl = dpa + mra * factor;
+        const mrucl = mra * 3.27;
+        const dla = (lcl + dpa) / 2;
+        const dua = (dpa + ucl) / 2;
+
+        for (let i = 0; i < 8; i++) {
+            results[i].dpa = dpa; results[i].mra = mra;
+            results[i].lcl = lcl; results[i].ucl = ucl;
+            results[i].mrucl = mrucl; results[i].dla = dla;
+            results[i].dua = dua; results[i].ruleApplied = 'base';
+            if (i > 0) results[i].mr = Math.abs(data[i] - data[i-1]);
+        }
+
+        for (let i = 8; i < data.length; i++) {
+            const curr = data[i];
+            const prev = results[i-1];
+            const mr = Math.abs(curr - data[i-1]);
+            results[i].mr = mr;
+            let ruleTriggered = false;
+
+            if ((curr > prev.ucl || curr < prev.lcl) && mr > prev.mrucl) results[i].signal = 1;
+
+            if (i >= 7) {
+                const last8 = data.slice(i-7, i+1);
+                if (last8.every(dp => dp > prev.dpa) || last8.every(dp => dp < prev.dpa)) {
+                    ruleTriggered = true;
+                    const newDPA = last8.reduce((a,b) => a+b) / 8;
+                    const newMRs = [Math.abs(data[i-7] - (i-8 >= 0 ? data[i-8] : data[i-7]))];
+                    for (let j = 1; j < 8; j++) newMRs.push(Math.abs(last8[j] - last8[j-1]));
+                    const newMRA = newMRs.reduce((a,b) => a+b) / newMRs.length;
+                    const newLCL = newDPA - newMRA * factor;
+                    const newUCL = newDPA + newMRA * factor;
+                    for (let j = i-7; j <= i; j++) {
+                        results[j].dpa = newDPA; results[j].mra = newMRA;
+                        results[j].lcl = newLCL; results[j].ucl = newUCL;
+                        results[j].mrucl = newMRA * 3.27;
+                        results[j].dla = (newLCL + newDPA) / 2;
+                        results[j].dua = (newDPA + newUCL) / 2;
+                        results[j].ruleApplied = 'regla2';
+                    }
+                }
+            }
+
+            if (!ruleTriggered && i >= 3) {
+                const last4 = data.slice(i-3, i+1);
+                if (last4.filter(dp => dp > prev.dua).length >= 3 ||
+                    last4.filter(dp => dp < prev.dla).length >= 3) {
+                    ruleTriggered = true;
+                    const newDPA = last4.reduce((a,b) => a+b) / 4;
+                    const newMRs = [Math.abs(data[i-3] - (i-4 >= 0 ? data[i-4] : data[i-3]))];
+                    for (let j = 1; j < 4; j++) newMRs.push(Math.abs(last4[j] - last4[j-1]));
+                    const newMRA = newMRs.reduce((a,b) => a+b) / newMRs.length;
+                    const newLCL = newDPA - newMRA * factor;
+                    const newUCL = newDPA + newMRA * factor;
+                    for (let j = i-3; j <= i; j++) {
+                        results[j].dpa = newDPA; results[j].mra = newMRA;
+                        results[j].lcl = newLCL; results[j].ucl = newUCL;
+                        results[j].mrucl = newMRA * 3.27;
+                        results[j].dla = (newLCL + newDPA) / 2;
+                        results[j].dua = (newDPA + newUCL) / 2;
+                        results[j].ruleApplied = 'regla3';
+                    }
+                }
+            }
+
+            if (!ruleTriggered) {
+                results[i].dpa = prev.dpa; results[i].mra = prev.mra;
+                results[i].lcl = prev.lcl; results[i].ucl = prev.ucl;
+                results[i].mrucl = prev.mrucl; results[i].dla = prev.dla;
+                results[i].dua = prev.dua; results[i].ruleApplied = prev.ruleApplied;
+            }
+        }
+
+        return results;
+    }
+
+    // ─── RENDERIZAR GRÁFICO PBC ───────────────────────────────────
+    function renderPBC(results, labels, titulo) {
+        if (pbcChart) pbcChart.destroy();
+
+        const ctx = document.getElementById('pbcChart').getContext('2d');
+        const dpColors = results.map(r => r.signal === 1 ? '#FF0000' : '#4169E1');
+
+        pbcChart = new Chart(ctx, {
+            type: 'line',
+            plugins: [ChartDataLabels],
+            data: {
+                labels: results.map(r => r.date),
+                datasets: [
+                    {
+                        label: titulo,
+                        data: results.map(r => r.dp),
+                        borderColor: '#4169E1',
+                        borderWidth: 2,
+                        pointBackgroundColor: dpColors,
+                        pointBorderColor: dpColors,
+                        pointRadius: 4,
+                        tension: 0
+                    },
+                    {
+                        label: 'Línea Central',
+                        data: results.map(r => r.dpa),
+                        borderColor: '#228B22',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0
+                    },
+                    {
+                        label: 'LCS',
+                        data: results.map(r => r.ucl),
+                        borderColor: '#DC143C',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0
+                    },
+                    {
+                        label: 'LCI',
+                        data: results.map(r => r.lcl),
+                        borderColor: '#DC143C',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: titulo,
+                        font: { size: 16, weight: 'bold' }
+                    },
+                    legend: { display: true, position: 'top' },
+                    datalabels: {
+                        display: (ctx) => ctx.datasetIndex === 0,
+                        align: 'top',
+                        offset: 6,
+                        color: (ctx) => results[ctx.dataIndex].signal === 1 ? '#FF0000' : '#4169E1',
+                        font: { size: 9, weight: 'bold' },
+                        formatter: (value) => value.toFixed(2)
+                    }
+                },
+                scales: {
+                    x: { ticks: { maxRotation: 45 }, grid: { display: false } },
+                    y: { beginAtZero: false }
+                }
+            }
+        });
+    }
+
+    // ─── DESCARGAR GRÁFICO ────────────────────────────────────────
+    window.descargarGrafico = function() {
+        if (!pbcChart) return;
+        const link = document.createElement('a');
+        link.download = `${indicadorSeleccionado?.nombre || 'grafico'}.png`;
+        link.href = pbcChart.toBase64Image('image/png', 1.0);
+        link.click();
+    }
+
+    // ─── CERRAR SESIÓN ────────────────────────────────────────────
+    window.cerrarSesion = async function() {
+        await signOut(auth);
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+    }
+
+    // ─── INICIALIZACIÓN ───────────────────────────────────────────
+    onAuthStateChanged(auth, async user => {
+        if (!user) { window.location.href = 'login.html'; return; }
+
+        const usuario = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+        if (!usuario.uid) { window.location.href = 'login.html'; return; }
+
+        if (usuario.nombre) {
+            document.getElementById('headerSubtitle').textContent = `Bienvenido, ${usuario.nombre}`;
+        }
+
+        if (usuario.rol === 'operador') {
+            const sel = document.getElementById('selCentro');
+            sel.value = usuario.centro_id;
+            sel.disabled = true;
+        }
+
+        const ahora = new Date();
+        const mesActual = ahora.getMonth() + 1;
+        const anioActual = ahora.getFullYear();
+
+        poblarMeses('selMesDesde', mesActual);
+        poblarMeses('selMesHasta', mesActual);
+        document.getElementById('inputAnioDesde').value = anioActual - 1;
+        document.getElementById('inputAnioHasta').value = anioActual;
+
+        await cargarRedes();
+        await cargarCentros();
+        await cargarIndicadores();
+    });
+</script>
+</body>
+</html>
