@@ -222,8 +222,8 @@
     <!-- ALERTA -->
     <div id="alertBox" class="alert"></div>
 
-    <!-- FILTROS -->
-    <div class="card">
+    <!-- FILTROS PBC -->
+    <div class="card" id="filtrosPBC">
         <h2>Filtros</h2>
         <div class="form-row">
             <div class="form-col">
@@ -256,6 +256,28 @@
             </div>
         </div>
     </div>
+
+    <!-- FILTROS CLUSTERING -->
+    <div class="card hidden" id="filtrosClustering">
+        <h2>Filtros</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Red</label>
+                <select id="selRedClustering" onchange="filtrarCentrosClust()">
+                    <option value="">-- Todas las redes --</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label>Tipo de Atención</label>
+                <select id="selTipoAtencionClust">
+                    <option value="">-- Todos --</option>
+                    <option value="hospitalaria">Hospitalizada/o</option>
+                    <option value="urgencias">Urgencias</option>
+                    <option value="ambulatoria">Ambulatoria</option>
+                </select>
+            </div>
+        </div>
+    </div>
     <!-- NAVEGACIÓN POR GRUPOS -->
     <div class="card">
         <h2>Indicadores</h2>
@@ -263,16 +285,66 @@
         <div class="indicadores-grid" id="indicadoresGrid"></div>
     </div>
 
-<!-- MAPA DE CALOR -->
-    <div class="card hidden" id="cardHeatmap">
-        <h2 id="tituloHeatmap">Mapa de Calor</h2>
-        <div style="margin-bottom:10px; color:#555; font-size:0.9em;">
-            <span id="infoHeatmap"></span>
-        </div>
+<!-- CLUSTERING NIVEL 1: VISTA POR RED -->
+    <div class="card hidden" id="cardNivel1">
+        <h2 id="tituloNivel1">Vista por Red</h2>
+        <div style="margin-bottom:10px; color:#555; font-size:0.9em;" id="infoNivel1"></div>
         <div style="overflow-x:auto;">
-            <table class="heatmap-table" id="tablaHeatmap">
-                <thead><tr id="headHeatmap"></tr></thead>
-                <tbody id="bodyHeatmap"></tbody>
+            <table class="heatmap-table" id="tablaNivel1">
+                <thead><tr id="headNivel1"></tr></thead>
+                <tbody id="bodyNivel1"></tbody>
+            </table>
+        </div>
+        <div style="margin-top:15px; display:flex; gap:20px; font-size:0.85em;">
+            <span>🟢 Sin eventos</span>
+            <span>🟡 Alerta</span>
+            <span>🔴 Clustering</span>
+        </div>
+        <div style="margin-top:20px;">
+            <h3 style="font-size:1em; margin-bottom:10px;">Incidentes diarios — últimos 365 días (Red)</h3>
+            <div style="position:relative; height:250px;">
+                <canvas id="chartNivel1"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLUSTERING NIVEL 2: VISTA POR CENTRO -->
+    <div class="card hidden" id="cardNivel2">
+        <div style="margin-bottom:15px;">
+            <button class="nav-btn" onclick="volverNivel1()">← Volver a Red</button>
+        </div>
+        <h2 id="tituloNivel2">Vista por Centro</h2>
+        <div style="margin-bottom:10px; color:#555; font-size:0.9em;" id="infoNivel2"></div>
+        <div style="overflow-x:auto;">
+            <table class="heatmap-table" id="tablaNivel2">
+                <thead><tr id="headNivel2"></tr></thead>
+                <tbody id="bodyNivel2"></tbody>
+            </table>
+        </div>
+        <div style="margin-top:15px; display:flex; gap:20px; font-size:0.85em;">
+            <span>🟢 Sin eventos</span>
+            <span>🟡 Alerta</span>
+            <span>🔴 Clustering</span>
+        </div>
+        <div style="margin-top:20px;">
+            <h3 style="font-size:1em; margin-bottom:10px;">Incidentes diarios — últimos 365 días (Centro)</h3>
+            <div style="position:relative; height:250px;">
+                <canvas id="chartNivel2"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLUSTERING NIVEL 3: VISTA POR SERVICIO -->
+    <div class="card hidden" id="cardNivel3">
+        <div style="margin-bottom:15px;">
+            <button class="nav-btn" onclick="volverNivel2()">← Volver a Centro</button>
+        </div>
+        <h2 id="tituloNivel3">Vista por Servicio</h2>
+        <div style="margin-bottom:10px; color:#555; font-size:0.9em;" id="infoNivel3"></div>
+        <div style="overflow-x:auto;">
+            <table class="heatmap-table" id="tablaNivel3">
+                <thead><tr id="headNivel3"></tr></thead>
+                <tbody id="bodyNivel3"></tbody>
             </table>
         </div>
         <div style="margin-top:15px; display:flex; gap:20px; font-size:0.85em;">
@@ -976,6 +1048,7 @@
 </script>
 </body>
 </html>
+
 
 
 
