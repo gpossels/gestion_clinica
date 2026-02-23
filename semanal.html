@@ -212,7 +212,7 @@
     <!-- HEADER -->
     <div class="header">
         <h1>📅 Indicadores Semanales</h1>
-        <p id="headerSubtitle">Gráficos PBC por semana ISO</p>
+        <p id="headerSubtitle">Gráficos por semana ISO</p>
         <div class="header-actions">
             <button class="nav-btn" onclick="window.location.href='index.html'">← Inicio</button>
             <button class="nav-btn rojo" onclick="cerrarSesion()">Cerrar Sesión</button>
@@ -269,7 +269,7 @@
             </div>
             <div class="form-col">
                 <label>Tipo de Atención</label>
-                <select id="selTipoAtencionClust">
+                <select id="selTipoAtencionClust" onchange="filtrarCentrosClust()">
                     <option value="">-- Todos --</option>
                     <option value="hospitalaria">Hospitalizada/o</option>
                     <option value="urgencias">Urgencias</option>
@@ -278,6 +278,7 @@
             </div>
         </div>
     </div>
+
     <!-- NAVEGACIÓN POR GRUPOS -->
     <div class="card">
         <h2>Indicadores</h2>
@@ -285,7 +286,7 @@
         <div class="indicadores-grid" id="indicadoresGrid"></div>
     </div>
 
-<!-- CLUSTERING NIVEL 1: VISTA POR RED -->
+    <!-- CLUSTERING NIVEL 1: VISTA POR RED -->
     <div class="card hidden" id="cardNivel1">
         <h2 id="tituloNivel1">Vista por Red</h2>
         <div style="margin-bottom:10px; color:#555; font-size:0.9em;" id="infoNivel1"></div>
@@ -353,8 +354,8 @@
             <span>🔴 Clustering</span>
         </div>
     </div>
-    
-    <!-- GRÁFICO -->
+
+    <!-- GRÁFICO PBC -->
     <div class="card hidden" id="cardGrafico">
         <h2 id="tituloGrafico">Gráfico PBC</h2>
         <div class="chart-actions">
@@ -389,6 +390,7 @@
 
     let centros = [];
     let indicadores = [];
+    let redes = [];
     let indicadorSeleccionado = null;
     let pbcChart = null;
     let grupoActivo = null;
@@ -436,9 +438,30 @@
         return `${anio}-W${sem}`;
     }
 
-    // ─── CARGA INICIAL ────────────────────────────────────────────
-    let redes = [];
+    function fechaAISOWeek(fechaStr) {
+        const d = new Date(fechaStr + 'T12:00:00');
+        const jan4 = new Date(d.getFullYear(), 0, 4);
+        const startOfWeek1 = new Date(jan4);
+        startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+        const diff = d - startOfWeek1;
+        if (diff < 0) {
+            const jan4prev = new Date(d.getFullYear() - 1, 0, 4);
+            const startOfWeek1prev = new Date(jan4prev);
+            startOfWeek1prev.setDate(jan4prev.getDate() - ((jan4prev.getDay() + 6) % 7));
+            const semana = Math.floor((d - startOfWeek1prev) / (7 * 86400000)) + 1;
+            return `${d.getFullYear()-1}-W${String(semana).padStart(2,'0')}`;
+        }
+        const semana = Math.floor(diff / (7 * 86400000)) + 1;
+        return `${d.getFullYear()}-W${String(semana).padStart(2,'0')}`;
+    }
 
+    function semanasEnAnio(anio) {
+        const d = new Date(anio, 11, 28);
+        const startOfYear = new Date(anio, 0, 1);
+        return Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+    }
+
+    // ─── CARGA INICIAL ────────────────────────────────────────────
     async function cargarRedes() {
         const snap = await getDocs(collection(db, 'redes'));
         redes = [];
@@ -489,7 +512,6 @@
 
         renderGrupos();
 
-        // Verificar si viene indicador preseleccionado desde index.html
         const params = new URLSearchParams(window.location.search);
         const indId = params.get('indicador');
         if (indId) {
@@ -504,7 +526,6 @@
         const nav = document.getElementById('gruposNav');
         nav.innerHTML = '';
 
-        // Botón "Todos"
         const btnTodos = document.createElement('button');
         btnTodos.className = 'grupo-btn active';
         btnTodos.textContent = 'Todos';
@@ -534,7 +555,6 @@
         const grid = document.getElementById('indicadoresGrid');
         grid.innerHTML = '';
 
-        // Agrupar por subgrupo
         const subgrupos = [...new Set(lista.map(i => i.subgrupo || 'General'))].sort();
 
         subgrupos.forEach(subgrupo => {
@@ -550,8 +570,9 @@
                 card.className = 'indicador-card';
                 card.id = `ind_${ind.id}`;
 
-                const tipo = ind.campo_denominador && ind.campo_denominador !== '1' && ind.campo_denominador !== '' ?
-                    (ind.multiplicador > 1 ? 'Tasa' : 'Índice') : 'Volumen';
+                const tipo = ind.tipo_grafico === 'clustering' ? 'Clustering' :
+                    (ind.campo_denominador && ind.campo_denominador !== '1' && ind.campo_denominador !== '' ?
+                        (ind.multiplicador > 1 ? 'Tasa' : 'Índice') : 'Volumen');
 
                 card.innerHTML = `
                     <h3>${ind.nombre}</h3>
@@ -574,12 +595,38 @@
         if (card) card.classList.add('selected');
 
         if (ind.tipo_grafico === 'clustering') {
+            document.getElementById('filtrosPBC').classList.add('hidden');
+            document.getElementById('filtrosClustering').classList.remove('hidden');
             document.getElementById('cardGrafico').classList.add('hidden');
-            generarHeatmap();
+            document.getElementById('cardNivel1').classList.add('hidden');
+            document.getElementById('cardNivel2').classList.add('hidden');
+            document.getElementById('cardNivel3').classList.add('hidden');
+            poblarFiltrosClustering();
+            cargarDatosClustering();
         } else {
-            document.getElementById('cardHeatmap').classList.add('hidden');
+            document.getElementById('filtrosClustering').classList.add('hidden');
+            document.getElementById('filtrosPBC').classList.remove('hidden');
+            document.getElementById('cardNivel1').classList.add('hidden');
+            document.getElementById('cardNivel2').classList.add('hidden');
+            document.getElementById('cardNivel3').classList.add('hidden');
             generarGrafico();
         }
+    }
+
+    function poblarFiltrosClustering() {
+        const sel = document.getElementById('selRedClustering');
+        if (sel.options.length <= 1) {
+            redes.filter(r => r.activo !== false).forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = r.nombre;
+                sel.appendChild(opt);
+            });
+        }
+    }
+
+    window.filtrarCentrosClust = function() {
+        cargarDatosClustering();
     }
 
     // ─── GENERAR GRÁFICO PBC ──────────────────────────────────────
@@ -598,12 +645,9 @@
             return;
         }
 
-        // Consultar registros
         let q;
         if (centroId) {
-            q = query(collection(db, 'registros_semanales'),
-                where('centro_id', '==', centroId)
-            );
+            q = query(collection(db, 'registros_semanales'), where('centro_id', '==', centroId));
         } else {
             q = query(collection(db, 'registros_semanales'));
         }
@@ -612,10 +656,7 @@
         let registros = [];
         snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
 
-        // Filtrar por rango de fechas
         registros = registros.filter(r => r.fecha >= fechaDesde && r.fecha <= fechaHasta);
-
-        // Ordenar por fecha
         registros.sort((a,b) => a.fecha.localeCompare(b.fecha));
 
         if (registros.length === 0) {
@@ -623,7 +664,6 @@
             return;
         }
 
-        // Calcular serie de valores
         const ind = indicadorSeleccionado;
         const denominadorCampo = ind.campo_denominador;
         const multiplicador = parseFloat(ind.multiplicador) || 1;
@@ -634,37 +674,30 @@
         registros.forEach(r => {
             const num = parseFloat(r[ind.campo_numerador]);
             let den;
-
             if (!denominadorCampo || denominadorCampo === '' || denominadorCampo === '1') {
                 den = 1;
             } else {
                 den = parseFloat(r[denominadorCampo]);
             }
-
             if (isNaN(num) || isNaN(den) || den === 0) return;
-
             const valor = (num / den) * multiplicador;
             labels.push(r.fecha);
             valores.push(valor);
         });
 
         if (valores.length < 8) {
-            showAlert(`Se necesitan al menos 8 puntos de datos. Solo hay ${valores.length} disponibles para los filtros seleccionados.`, 'error');
+            showAlert(`Se necesitan al menos 8 puntos de datos. Solo hay ${valores.length} disponibles.`, 'error');
             return;
         }
 
-        // Calcular PBC
         const resultados = calcularPBC(valores, labels);
 
-        // Mostrar gráfico
         document.getElementById('cardGrafico').classList.remove('hidden');
         document.getElementById('tituloGrafico').textContent = ind.nombre;
         document.getElementById('infoSerie').textContent =
             `${valores.length} semanas | Centro: ${centroId ? centros.find(c=>c.id===centroId)?.nombre : 'Todos'} | ${fechaDesde} a ${fechaHasta}`;
 
         renderPBC(resultados, labels, ind.nombre);
-
-        // Scroll al gráfico
         document.getElementById('cardGrafico').scrollIntoView({ behavior: 'smooth' });
     }
 
@@ -672,14 +705,12 @@
     function calcularPBC(data, labels) {
         const factor = 3 / 1.128;
         const results = data.map((dp, i) => ({
-            period: i + 1,
-            date: labels[i],
-            dp, dpa: null, mr: null, mra: null,
+            period: i + 1, date: labels[i], dp,
+            dpa: null, mr: null, mra: null,
             lcl: null, dla: null, dua: null, ucl: null, mrucl: null,
             signal: null, ruleApplied: null
         }));
 
-        // Línea base: primeros 8 puntos
         const dpa = data.slice(0,8).reduce((a,b) => a+b) / 8;
         const mrs = [];
         for (let i = 1; i < 8; i++) mrs.push(Math.abs(data[i] - data[i-1]));
@@ -703,13 +734,10 @@
             const prev = results[i-1];
             const mr = Math.abs(curr - data[i-1]);
             results[i].mr = mr;
-
             let ruleTriggered = false;
 
-            // Señal Regla 1
             if ((curr > prev.ucl || curr < prev.lcl) && mr > prev.mrucl) results[i].signal = 1;
 
-            // Regla 2: 8 puntos seguidos sobre o bajo DPA
             if (i >= 7) {
                 const last8 = data.slice(i-7, i+1);
                 if (last8.every(dp => dp > prev.dpa) || last8.every(dp => dp < prev.dpa)) {
@@ -731,7 +759,6 @@
                 }
             }
 
-            // Regla 3: 3 de 4 sobre DUA o bajo DLA
             if (!ruleTriggered && i >= 3) {
                 const last4 = data.slice(i-3, i+1);
                 if (last4.filter(dp => dp > prev.dua).length >= 3 ||
@@ -765,7 +792,7 @@
         return results;
     }
 
-    // ─── RENDERIZAR GRÁFICO ───────────────────────────────────────
+    // ─── RENDERIZAR GRÁFICO PBC ───────────────────────────────────
     function renderPBC(results, labels, titulo) {
         if (pbcChart) pbcChart.destroy();
 
@@ -834,165 +861,256 @@
                     }
                 },
                 scales: {
-                    x: {
-                        ticks: { maxRotation: 45 },
-                        grid: { display: false }
-                    },
+                    x: { ticks: { maxRotation: 45 }, grid: { display: false } },
                     y: { beginAtZero: false }
                 }
             }
         });
     }
 
-// ─── MAPA DE CALOR ────────────────────────────────────────────
-    window.generarHeatmap = async function() {
-        if (!indicadorSeleccionado) return;
+    // ─── CLUSTERING ───────────────────────────────────────────────
+    let incidentesCache = [];
+    let serviciosCache = [];
+    let centroActivoClust = null;
+    let chartN1 = null;
+    let chartN2 = null;
 
-        const centroId = document.getElementById('selCentro').value;
-        const fechaDesde = getFechaDesde();
-        const fechaHasta = getFechaHasta();
+    async function cargarDatosClustering() {
         const ind = indicadorSeleccionado;
+        const tipoAtencion = document.getElementById('selTipoAtencionClust').value;
+        const redId = document.getElementById('selRedClustering').value;
 
-        // Generar lista de semanas en el rango
-        const semanas = generarRangoSemanas(fechaDesde, fechaHasta);
+        const snap = await getDocs(query(collection(db, 'incidentes'),
+            where('indicador_id', '==', ind.id)
+        ));
+        incidentesCache = [];
+        snap.forEach(d => incidentesCache.push({ id: d.id, ...d.data() }));
 
-        // Cargar servicios del centro seleccionado
-        let snapSrv;
-        if (centroId) {
-            snapSrv = await getDocs(query(collection(db, 'unidad_servicio'),
-                where('centro_id', '==', centroId)));
-        } else {
-            snapSrv = await getDocs(collection(db, 'unidad_servicio'));
+        if (tipoAtencion) {
+            incidentesCache = incidentesCache.filter(i => i.tipo_atencion === tipoAtencion);
         }
 
-        const servicios = [];
-        snapSrv.forEach(d => {
-            if (d.data().activo !== false) {
-                const data = d.data();
-                const nombre = `${data.unidad}${data.edificio ? ' — ' + data.edificio : ''}${data.piso ? ', Piso ' + data.piso : ''}`;
-                servicios.push({ id: d.id, nombre, centro_id: data.centro_id });
-            }
-        });
-        servicios.sort((a,b) => a.nombre.localeCompare(b.nombre));
+        const snapSrv = await getDocs(collection(db, 'unidad_servicio'));
+        serviciosCache = [];
+        snapSrv.forEach(d => serviciosCache.push({ id: d.id, ...d.data() }));
 
-        if (servicios.length === 0) {
-            showAlert('No hay servicios definidos para el centro seleccionado.', 'info');
-            return;
-        }
+        let centrosVista = centros.filter(c => c.activo !== false);
+        if (redId) centrosVista = centrosVista.filter(c => c.red_id === redId);
 
-        // Cargar incidentes
-        let snapInc;
-        if (centroId) {
-            snapInc = await getDocs(query(collection(db, 'incidentes'),
-                where('centro_id', '==', centroId),
-                where('indicador_id', '==', ind.id)
-            ));
-        } else {
-            snapInc = await getDocs(query(collection(db, 'incidentes'),
-                where('indicador_id', '==', ind.id)
-            ));
-        }
-
-        const incidentes = [];
-        snapInc.forEach(d => incidentes.push({ id: d.id, ...d.data() }));
-
-        // Construir mapa: servicio_id → semana → count
-        const mapa = {};
-        servicios.forEach(s => {
-            mapa[s.id] = {};
-            semanas.forEach(sem => mapa[s.id][sem] = 0);
-        });
-
-        incidentes.forEach(inc => {
-            const semana = fechaAISOWeek(inc.fecha);
-            if (mapa[inc.unidad_servicio_id] && semanas.includes(semana)) {
-                mapa[inc.unidad_servicio_id][semana]++;
-            }
-        });
-
-        // Renderizar tabla
-        renderHeatmap(servicios, semanas, mapa, ind);
-
-        document.getElementById('cardHeatmap').classList.remove('hidden');
-        document.getElementById('tituloHeatmap').textContent = ind.nombre;
-        document.getElementById('infoHeatmap').textContent =
-            `${semanas.length} semanas | Umbral amarillo: ${ind.umbral_amarillo} evento | Umbral rojo: ${ind.umbral_rojo} eventos`;
-
-        document.getElementById('cardHeatmap').scrollIntoView({ behavior: 'smooth' });
+        mostrarNivel1(centrosVista, ind);
     }
 
-    function generarRangoSemanas(desde, hasta) {
-        const semanas = [];
-        let actual = desde;
-        let iteraciones = 0;
-        while (actual <= hasta && iteraciones < 104) {
-            semanas.push(actual);
-            actual = siguienteSemana(actual);
-            iteraciones++;
-        }
-        return semanas;
-    }
+    function mostrarNivel1(centrosVista, ind) {
+        const semanas = ultimasNSemanas(8);
 
-    function siguienteSemana(isoWeek) {
-        const [anio, semStr] = isoWeek.split('-W');
-        const sem = parseInt(semStr);
-        const maxSem = semanasEnAnio(parseInt(anio));
-        if (sem >= maxSem) return `${parseInt(anio)+1}-W01`;
-        return `${anio}-W${String(sem+1).padStart(2,'0')}`;
-    }
+        const head = document.getElementById('headNivel1');
+        head.innerHTML = `<th>Centro</th>${semanas.map(s => `<th>${s}</th>`).join('')}`;
 
-    function semanasEnAnio(anio) {
-        const d = new Date(anio, 11, 28);
-        const startOfYear = new Date(anio, 0, 1);
-        return Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
-    }
-
-    function fechaAISOWeek(fechaStr) {
-        const d = new Date(fechaStr + 'T12:00:00');
-        const jan4 = new Date(d.getFullYear(), 0, 4);
-        const startOfWeek1 = new Date(jan4);
-        startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
-        const diff = d - startOfWeek1;
-        if (diff < 0) {
-            const jan4prev = new Date(d.getFullYear() - 1, 0, 4);
-            const startOfWeek1prev = new Date(jan4prev);
-            startOfWeek1prev.setDate(jan4prev.getDate() - ((jan4prev.getDay() + 6) % 7));
-            const semana = Math.floor((d - startOfWeek1prev) / (7 * 86400000)) + 1;
-            return `${d.getFullYear()-1}-W${String(semana).padStart(2,'0')}`;
-        }
-        const semana = Math.floor(diff / (7 * 86400000)) + 1;
-        return `${d.getFullYear()}-W${String(semana).padStart(2,'0')}`;
-    }
-
-    function renderHeatmap(servicios, semanas, mapa, ind) {
-        // Header
-        const head = document.getElementById('headHeatmap');
-        head.innerHTML = `<th>Servicio</th>${semanas.map(s => `<th>${s}</th>`).join('')}`;
-
-        // Body
-        const tbody = document.getElementById('bodyHeatmap');
+        const tbody = document.getElementById('bodyNivel1');
         tbody.innerHTML = '';
 
-        servicios.forEach(srv => {
+        centrosVista.forEach(centro => {
+            const incCentro = incidentesCache.filter(i => i.centro_id === centro.id);
             const tr = document.createElement('tr');
-            let celdas = `<td class="servicio">${srv.nombre}</td>`;
+            let celdas = `<td class="servicio" style="cursor:pointer; color:#1a73e8;" onclick="mostrarNivel2('${centro.id}')">${centro.nombre}</td>`;
 
             semanas.forEach(sem => {
-                const count = mapa[srv.id][sem] || 0;
-                let clase = 'celda-verde';
-                let texto = count === 0 ? '—' : count;
-
-                if (count >= ind.umbral_rojo) clase = 'celda-roja';
-                else if (count >= ind.umbral_amarillo) clase = 'celda-amarilla';
-
-                celdas += `<td class="${clase}">${texto}</td>`;
+                const count = incCentro.filter(i => fechaAISOWeek(i.fecha) === sem).length;
+                celdas += `<td class="${colorCelda(count, ind)}">${count === 0 ? '—' : count}</td>`;
             });
 
             tr.innerHTML = celdas;
             tbody.appendChild(tr);
         });
+
+        document.getElementById('tituloNivel1').textContent = ind.nombre;
+        document.getElementById('infoNivel1').textContent = `Últimas 8 semanas | ${centrosVista.length} centro(s)`;
+        document.getElementById('cardNivel1').classList.remove('hidden');
+        document.getElementById('cardNivel2').classList.add('hidden');
+        document.getElementById('cardNivel3').classList.add('hidden');
+
+        const incRed = incidentesCache.filter(i => centrosVista.some(c => c.id === i.centro_id));
+        renderGrafico365(incRed, 'chartNivel1', chartN1, (chart) => chartN1 = chart);
+
+        document.getElementById('cardNivel1').scrollIntoView({ behavior: 'smooth' });
     }
-    
+
+    window.mostrarNivel2 = async function(centroId) {
+        centroActivoClust = centroId;
+        const ind = indicadorSeleccionado;
+        const semanas = ultimasNSemanas(8);
+        const centro = centros.find(c => c.id === centroId);
+
+        const srvCentro = serviciosCache.filter(s => s.centro_id === centroId && s.activo !== false);
+        srvCentro.sort((a,b) => a.unidad.localeCompare(b.unidad));
+
+        const incCentro = incidentesCache.filter(i => i.centro_id === centroId);
+
+        const head = document.getElementById('headNivel2');
+        head.innerHTML = `<th>Servicio</th>${semanas.map(s => `<th>${s}</th>`).join('')}`;
+
+        const tbody = document.getElementById('bodyNivel2');
+        tbody.innerHTML = '';
+
+        srvCentro.forEach(srv => {
+            const nombreSrv = `${srv.unidad}${srv.edificio ? ' — ' + srv.edificio : ''}${srv.piso ? ', Piso ' + srv.piso : ''}`;
+            const incSrv = incCentro.filter(i => i.unidad_servicio_id === srv.id);
+            const tr = document.createElement('tr');
+            let celdas = `<td class="servicio" style="cursor:pointer; color:#1a73e8;" onclick="mostrarNivel3('${srv.id}')">${nombreSrv}</td>`;
+
+            semanas.forEach(sem => {
+                const count = incSrv.filter(i => fechaAISOWeek(i.fecha) === sem).length;
+                celdas += `<td class="${colorCelda(count, ind)}">${count === 0 ? '—' : count}</td>`;
+            });
+
+            tr.innerHTML = celdas;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('tituloNivel2').textContent = `${ind.nombre} — ${centro?.nombre}`;
+        document.getElementById('infoNivel2').textContent = `Últimas 8 semanas | ${srvCentro.length} servicio(s)`;
+        document.getElementById('cardNivel2').classList.remove('hidden');
+        document.getElementById('cardNivel3').classList.add('hidden');
+
+        renderGrafico365(incCentro, 'chartNivel2', chartN2, (chart) => chartN2 = chart);
+
+        document.getElementById('cardNivel2').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    window.mostrarNivel3 = function(servicioId) {
+        const ind = indicadorSeleccionado;
+        const srv = serviciosCache.find(s => s.id === servicioId);
+        const nombreSrv = `${srv.unidad}${srv.edificio ? ' — ' + srv.edificio : ''}${srv.piso ? ', Piso ' + srv.piso : ''}`;
+
+        const semanas = ultimasNSemanas(4);
+        const incSrv = incidentesCache.filter(i => i.unidad_servicio_id === servicioId);
+
+        const head = document.getElementById('headNivel3');
+        head.innerHTML = `<th>Semana</th><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th>`;
+
+        const tbody = document.getElementById('bodyNivel3');
+        tbody.innerHTML = '';
+
+        semanas.forEach(sem => {
+            const diasSemana = obtenerDiasDeSemana(sem);
+            const tr = document.createElement('tr');
+            let celdas = `<td class="servicio">${sem}</td>`;
+
+            diasSemana.forEach(dia => {
+                const count = incSrv.filter(i => i.fecha === dia).length;
+                celdas += `<td class="${colorCelda(count, ind)}" title="${dia}">${count === 0 ? '—' : count}</td>`;
+            });
+
+            tr.innerHTML = celdas;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('tituloNivel3').textContent = `${ind.nombre} — ${nombreSrv}`;
+        document.getElementById('infoNivel3').textContent = `Últimas 4 semanas | detalle diario`;
+        document.getElementById('cardNivel3').classList.remove('hidden');
+        document.getElementById('cardNivel3').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderGrafico365(incidentes, canvasId, chartRef, setChart) {
+        const hoy = new Date();
+        const fechas = [];
+        const counts = {};
+        for (let i = 364; i >= 0; i--) {
+            const d = new Date(hoy);
+            d.setDate(hoy.getDate() - i);
+            const f = d.toISOString().slice(0,10);
+            fechas.push(f);
+            counts[f] = 0;
+        }
+
+        incidentes.forEach(inc => {
+            if (counts[inc.fecha] !== undefined) counts[inc.fecha]++;
+        });
+
+        const data = fechas.map(f => counts[f]);
+
+        if (chartRef) chartRef.destroy();
+
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const newChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: fechas,
+                datasets: [{
+                    label: 'Incidentes',
+                    data,
+                    backgroundColor: data.map(v => v >= indicadorSeleccionado.umbral_rojo ? '#f8d7da' :
+                        v >= indicadorSeleccionado.umbral_amarillo ? '#fff3cd' : '#d4edda'),
+                    borderColor: data.map(v => v >= indicadorSeleccionado.umbral_rojo ? '#dc3545' :
+                        v >= indicadorSeleccionado.umbral_amarillo ? '#ffc107' : '#28a745'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: { display: false }
+                },
+                scales: {
+                    x: { ticks: { maxTicksLimit: 12, maxRotation: 45 } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+        setChart(newChart);
+    }
+
+    function colorCelda(count, ind) {
+        if (count >= ind.umbral_rojo) return 'celda-roja';
+        if (count >= ind.umbral_amarillo) return 'celda-amarilla';
+        return 'celda-verde';
+    }
+
+    function ultimasNSemanas(n) {
+        const semanas = [];
+        let sem = getSemanaActual();
+        let anio = new Date().getFullYear();
+        for (let i = 0; i < n; i++) {
+            semanas.unshift(`${anio}-W${String(sem).padStart(2,'0')}`);
+            sem--;
+            if (sem < 1) {
+                anio--;
+                sem = semanasEnAnio(anio);
+            }
+        }
+        return semanas;
+    }
+
+    function obtenerDiasDeSemana(isoWeek) {
+        const [anio, semStr] = isoWeek.split('-W');
+        const sem = parseInt(semStr);
+        const jan4 = new Date(parseInt(anio), 0, 4);
+        const startOfWeek1 = new Date(jan4);
+        startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+        const lunes = new Date(startOfWeek1);
+        lunes.setDate(startOfWeek1.getDate() + (sem - 1) * 7);
+        const dias = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(lunes);
+            d.setDate(lunes.getDate() + i);
+            dias.push(d.toISOString().slice(0,10));
+        }
+        return dias;
+    }
+
+    window.volverNivel1 = function() {
+        document.getElementById('cardNivel2').classList.add('hidden');
+        document.getElementById('cardNivel3').classList.add('hidden');
+        document.getElementById('cardNivel1').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    window.volverNivel2 = function() {
+        document.getElementById('cardNivel3').classList.add('hidden');
+        document.getElementById('cardNivel2').scrollIntoView({ behavior: 'smooth' });
+    }
+
     // ─── DESCARGAR GRÁFICO ────────────────────────────────────────
     window.descargarGrafico = function() {
         if (!pbcChart) return;
@@ -1024,14 +1142,13 @@
         if (usuario.nombre) {
             document.getElementById('headerSubtitle').textContent = `Bienvenido, ${usuario.nombre}`;
         }
-        // Operador: fijar centro automáticamente
+
         if (usuario.rol === 'operador') {
             const sel = document.getElementById('selCentro');
             sel.value = usuario.centro_id;
             sel.disabled = true;
         }
 
-        // Semanas por defecto: últimas 24 semanas
         const semActual = getSemanaActual();
         const anioActual = new Date().getFullYear();
         const semDesde = semActual > 24 ? semActual - 24 : 1;
@@ -1041,6 +1158,8 @@
         document.getElementById('inputAnioDesde').value = anioActual;
         document.getElementById('inputAnioHasta').value = anioActual;
 
+        document.getElementById('filtrosClustering').classList.add('hidden');
+
         await cargarRedes();
         await cargarCentros();
         await cargarIndicadores();
@@ -1048,9 +1167,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
