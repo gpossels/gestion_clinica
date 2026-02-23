@@ -266,6 +266,7 @@
         <button class="tab-btn" id="tabEditar" onclick="switchTab('editar')">Buscar y Editar</button>
         <button class="tab-btn" id="tabCentros" onclick="switchTab('centros')">Gestionar Centros</button>
         <button class="tab-btn" id="tabIndicadores" onclick="switchTab('indicadores')">Gestionar Indicadores</button>
+        <button class="tab-btn" id="tabRedes" onclick="switchTab('redes')">Gestionar Redes</button>
         <button class="tab-btn" id="tabServicios" onclick="switchTab('servicios')">Gestionar Servicios</button>
         <button class="tab-btn" id="tabConsolidado" onclick="switchTab('consolidado')">Consolidado</button>
         <button class="tab-btn" id="tabLog" onclick="switchTab('log')">Log de Actividad</button>
@@ -351,6 +352,46 @@
         </table>
     </div>
 
+<!-- PANEL: GESTIONAR REDES -->
+    <div class="card hidden" id="panelRedes">
+        <h2>Gestionar Redes</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Nombre de la red</label>
+                <input type="text" id="inputNombreRed" placeholder="Ej: Red Norte">
+            </div>
+            <div class="form-col" style="display:flex; align-items:flex-end;">
+                <button class="btn btn-success" onclick="agregarRed()">Agregar Red</button>
+            </div>
+        </div>
+        <table id="tablaRedes">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Centros asociados</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="bodyRedes"></tbody>
+        </table>
+
+        <h2 style="margin-top:30px;">Asignar Centro a Red</h2>
+        <div class="form-row">
+            <div class="form-col">
+                <label>Centro</label>
+                <select id="selCentroRed"></select>
+            </div>
+            <div class="form-col">
+                <label>Red</label>
+                <select id="selRedCentro"></select>
+            </div>
+            <div class="form-col" style="display:flex; align-items:flex-end;">
+                <button class="btn btn-primary" onclick="asignarRedACentro()">Asignar</button>
+            </div>
+        </div>
+    </div>
+	
 <!-- PANEL: GESTIONAR SERVICIOS -->
     <div class="card hidden" id="panelServicios">
         <h2>Gestionar Servicios por Centro</h2>
@@ -912,7 +953,7 @@
 
     // ─── TABS ─────────────────────────────────────────────────────
     window.switchTab = function(tab) {
-        ['nuevo','editar','centros','indicadores','servicios','consolidado','log'].forEach(t => {
+        ['nuevo','editar','centros','redes','indicadores','servicios','consolidado','log'].forEach(t => {
             document.getElementById(`panel${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.add('hidden');
             document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.remove('active');
         });
@@ -1353,7 +1394,106 @@ async function iniciarAutocompletadoConsol() {
             });
         });
     }
+// ─── GESTIONAR REDES ──────────────────────────────────────────
+    let redes = [];
 
+    async function cargarRedes() {
+        const snap = await getDocs(collection(db, 'redes'));
+        redes = [];
+        snap.forEach(d => redes.push({ id: d.id, ...d.data() }));
+        redes.sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+        // Poblar selector de redes
+        const selRed = document.getElementById('selRedCentro');
+        if (selRed) {
+            selRed.innerHTML = '';
+            redes.filter(r => r.activo !== false).forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = r.nombre;
+                selRed.appendChild(opt);
+            });
+        }
+
+        // Poblar selector de centros para asignar
+        const selCentroRed = document.getElementById('selCentroRed');
+        if (selCentroRed) {
+            selCentroRed.innerHTML = '';
+            centros.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre + (c.red_id ? ` (${redes.find(r=>r.id===c.red_id)?.nombre || 'Red asignada'})` : ' (sin red)');
+                selCentroRed.appendChild(opt);
+            });
+        }
+
+        cargarTablaRedes();
+    }
+
+    async function cargarTablaRedes() {
+        const tbody = document.getElementById('bodyRedes');
+        tbody.innerHTML = '';
+        redes.forEach(r => {
+            const centrosRed = centros.filter(c => c.red_id === r.id).map(c => c.nombre).join(', ') || '—';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${r.nombre}</td>
+                <td style="font-size:0.9em; color:#555;">${centrosRed}</td>
+                <td>${r.activo !== false ? '✅ Activo' : '⛔ Inactivo'}</td>
+                <td>
+                    <button class="btn-sm btn-sm-edit" onclick="toggleRed('${r.id}', ${r.activo !== false})">
+                        ${r.activo !== false ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button class="btn-sm btn-sm-delete" onclick="eliminarRed('${r.id}')" style="margin-left:5px;">Eliminar</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.agregarRed = async function() {
+        const nombre = document.getElementById('inputNombreRed').value.trim();
+        if (!nombre) { showAlert('Ingrese un nombre para la red.', 'error'); return; }
+        try {
+            await addDoc(collection(db, 'redes'), { nombre, activo: true });
+            document.getElementById('inputNombreRed').value = '';
+            await cargarRedes();
+            showAlert('Red agregada exitosamente.', 'success');
+        } catch(e) {
+            showAlert('Error al agregar red: ' + e.message, 'error');
+        }
+    }
+
+    window.toggleRed = async function(id, activo) {
+        await updateDoc(doc(db, 'redes', id), { activo: !activo });
+        await cargarRedes();
+    }
+
+    window.eliminarRed = async function(id) {
+        const confirmacion = confirm('¿Eliminar esta red?');
+        if (!confirmacion) return;
+        try {
+            await deleteDoc(doc(db, 'redes', id));
+            await cargarRedes();
+            showAlert('Red eliminada.', 'success');
+        } catch(e) {
+            showAlert('Error al eliminar: ' + e.message, 'error');
+        }
+    }
+
+    window.asignarRedACentro = async function() {
+        const centroId = document.getElementById('selCentroRed').value;
+        const redId = document.getElementById('selRedCentro').value;
+        if (!centroId || !redId) { showAlert('Seleccione centro y red.', 'error'); return; }
+        try {
+            await updateDoc(doc(db, 'centros', centroId), { red_id: redId });
+            await cargarCentros();
+            await cargarRedes();
+            showAlert('Centro asignado a la red exitosamente.', 'success');
+        } catch(e) {
+            showAlert('Error al asignar: ' + e.message, 'error');
+        }
+    }
 // ─── GESTIONAR SERVICIOS ──────────────────────────────────────
     async function poblarSelectoresServicios() {
         ['selCentroServicio', 'filtroCentroServicio'].forEach(selId => {
@@ -1594,9 +1734,10 @@ async function iniciarAutocompletadoConsol() {
             return;
         }
         await cargarCentros();
-	    poblarSelectoresServicios();
-	    iniciarAutocompletadoConsol();
-	    cargarUsuariosLog();
+    await cargarRedes();
+    poblarSelectoresServicios();
+    iniciarAutocompletadoConsol();
+    cargarUsuariosLog();
 
     // Fechas por defecto del log: último mes
     const hoy = new Date();
