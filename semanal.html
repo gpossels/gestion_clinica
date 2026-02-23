@@ -261,27 +261,7 @@
         </div>
     </div>
 
-    <!-- FILTROS CLUSTERING -->
-    <div class="card hidden" id="filtrosClustering">
-        <h2>Filtros</h2>
-        <div class="form-row">
-            <div class="form-col">
-                <label>Red</label>
-                <select id="selRedClustering" onchange="filtrarCentrosClust()">
-                    <option value="">-- Todas las redes --</option>
-                </select>
-            </div>
-            <div class="form-col">
-                <label>Tipo de Atención</label>
-                <select id="selTipoAtencionClust" onchange="filtrarCentrosClust()">
-                    <option value="">-- Todos --</option>
-                    <option value="hospitalaria">Hospitalizada/o</option>
-                    <option value="urgencias">Urgencias</option>
-                    <option value="ambulatoria">Ambulatoria</option>
-                </select>
-            </div>
-        </div>
-    </div>
+
 
     <!-- NAVEGACIÓN POR GRUPOS -->
     <div class="card">
@@ -293,6 +273,15 @@
     <!-- CLUSTERING NIVEL 1: VISTA POR RED -->
     <div class="card hidden" id="cardNivel1">
         <h2 id="tituloNivel1">Vista por Red</h2>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight:600; margin-right:10px;">Tipo de Atención:</label>
+            <select id="selTipoAtencionN1" onchange="recargarNivel1()" style="width:auto; padding:6px 10px;">
+                <option value="">-- Todos --</option>
+                <option value="hospitalaria">Hospitalizada/o</option>
+                <option value="urgencias">Urgencias</option>
+                <option value="ambulatoria">Ambulatoria</option>
+            </select>
+        </div>
         <div style="margin-bottom:10px; color:#555; font-size:0.9em;" id="infoNivel1"></div>
         <div style="overflow-x:auto;">
             <table class="heatmap-table" id="tablaNivel1">
@@ -319,6 +308,15 @@
             <button class="nav-btn" onclick="volverNivel1()">← Volver a Red</button>
         </div>
         <h2 id="tituloNivel2">Vista por Centro</h2>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight:600; margin-right:10px;">Tipo de Atención:</label>
+            <select id="selTipoAtencionN2" onchange="recargarNivel2()" style="width:auto; padding:6px 10px;">
+                <option value="">-- Todos --</option>
+                <option value="hospitalaria">Hospitalizada/o</option>
+                <option value="urgencias">Urgencias</option>
+                <option value="ambulatoria">Ambulatoria</option>
+            </select>
+        </div>
         <div style="margin-bottom:10px; color:#555; font-size:0.9em;" id="infoNivel2"></div>
         <div style="overflow-x:auto;">
             <table class="heatmap-table" id="tablaNivel2">
@@ -600,15 +598,15 @@
 
         if (ind.tipo_grafico === 'clustering') {
             document.getElementById('filtrosPBC').classList.add('hidden');
-            document.getElementById('filtrosClustering').classList.remove('hidden');
+            
             document.getElementById('cardGrafico').classList.add('hidden');
             document.getElementById('cardNivel1').classList.add('hidden');
             document.getElementById('cardNivel2').classList.add('hidden');
             document.getElementById('cardNivel3').classList.add('hidden');
-            poblarFiltrosClustering();
+            
             cargarDatosClustering();
         } else {
-            document.getElementById('filtrosClustering').classList.add('hidden');
+            
             document.getElementById('filtrosPBC').classList.remove('hidden');
             document.getElementById('cardNivel1').classList.add('hidden');
             document.getElementById('cardNivel2').classList.add('hidden');
@@ -617,21 +615,9 @@
         }
     }
 
-    function poblarFiltrosClustering() {
-        const sel = document.getElementById('selRedClustering');
-        if (sel.options.length <= 1) {
-            redes.filter(r => r.activo !== false).forEach(r => {
-                const opt = document.createElement('option');
-                opt.value = r.id;
-                opt.textContent = r.nombre;
-                sel.appendChild(opt);
-            });
         }
     }
 
-    window.filtrarCentrosClust = function() {
-        cargarDatosClustering();
-    }
 
     // ─── GENERAR GRÁFICO PBC ──────────────────────────────────────
     window.generarGrafico = async function() {
@@ -881,8 +867,8 @@
 
     async function cargarDatosClustering() {
         const ind = indicadorSeleccionado;
-        const tipoAtencion = document.getElementById('selTipoAtencionClust').value;
-        const redId = document.getElementById('selRedClustering').value;
+        const tipoAtencion = document.getElementById('selTipoAtencionN1').value;
+        
 
         const snap = await getDocs(query(collection(db, 'incidentes'),
             where('indicador_id', '==', ind.id)
@@ -906,8 +892,6 @@
             centrosVista = centrosVista.filter(c => c.id === centroIdPBC);
         } else if (redIdPBC) {
             centrosVista = centrosVista.filter(c => c.red_id === redIdPBC);
-        } else if (redId) {
-            centrosVista = centrosVista.filter(c => c.red_id === redId);
         }
 
         mostrarNivel1(centrosVista, ind);
@@ -957,7 +941,9 @@
         const srvCentro = serviciosCache.filter(s => s.centro_id === centroId && s.activo !== false);
         srvCentro.sort((a,b) => a.unidad.localeCompare(b.unidad));
 
-        const incCentro = incidentesCache.filter(i => i.centro_id === centroId);
+        const tipoAtencionN2 = document.getElementById('selTipoAtencionN2').value;
+        let incCentro = incidentesCache.filter(i => i.centro_id === centroId);
+        if (tipoAtencionN2) incCentro = incCentro.filter(i => i.tipo_atencion === tipoAtencionN2);
 
         const head = document.getElementById('headNivel2');
         head.innerHTML = `<th>Servicio</th>${semanas.map(s => `<th>${s}</th>`).join('')}`;
@@ -1113,6 +1099,14 @@
         return dias;
     }
 
+    window.recargarNivel1 = function() {
+        cargarDatosClustering();
+    }
+
+    window.recargarNivel2 = function() {
+        if (centroActivoClust) mostrarNivel2(centroActivoClust);
+    }
+
     window.volverNivel1 = function() {
         document.getElementById('cardNivel2').classList.add('hidden');
         document.getElementById('cardNivel3').classList.add('hidden');
@@ -1171,7 +1165,7 @@
         document.getElementById('inputAnioDesde').value = anioActual;
         document.getElementById('inputAnioHasta').value = anioActual;
 
-        document.getElementById('filtrosClustering').classList.add('hidden');
+        
 
         await cargarRedes();
         await cargarCentros();
