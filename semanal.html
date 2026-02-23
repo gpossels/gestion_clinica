@@ -227,6 +227,12 @@
         <h2>Filtros</h2>
         <div class="form-row">
             <div class="form-col">
+                <label>Red</label>
+                <select id="selRed" onchange="filtrarCentrosPorRed()">
+                    <option value="">-- Todas las redes --</option>
+                </select>
+            </div>
+            <div class="form-col">
                 <label>Centro</label>
                 <select id="selCentro">
                     <option value="">-- Todos los centros --</option>
@@ -250,7 +256,6 @@
             </div>
         </div>
     </div>
-
     <!-- NAVEGACIÓN POR GRUPOS -->
     <div class="card">
         <h2>Indicadores</h2>
@@ -360,19 +365,48 @@
     }
 
     // ─── CARGA INICIAL ────────────────────────────────────────────
+    let redes = [];
+
+    async function cargarRedes() {
+        const snap = await getDocs(collection(db, 'redes'));
+        redes = [];
+        snap.forEach(d => redes.push({ id: d.id, ...d.data() }));
+        redes.sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+        const sel = document.getElementById('selRed');
+        redes.filter(r => r.activo !== false).forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = r.nombre;
+            sel.appendChild(opt);
+        });
+    }
+
     async function cargarCentros() {
         const snap = await getDocs(collection(db, 'centros'));
         centros = [];
         snap.forEach(d => centros.push({ id: d.id, ...d.data() }));
         centros.sort((a,b) => a.nombre.localeCompare(b.nombre));
+        poblarSelCentros('');
+    }
 
+    function poblarSelCentros(redId) {
         const sel = document.getElementById('selCentro');
-        centros.filter(c => c.activo !== false).forEach(c => {
+        sel.innerHTML = '<option value="">-- Todos los centros --</option>';
+        const filtrados = redId
+            ? centros.filter(c => c.activo !== false && c.red_id === redId)
+            : centros.filter(c => c.activo !== false);
+        filtrados.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
             opt.textContent = c.nombre;
             sel.appendChild(opt);
         });
+    }
+
+    window.filtrarCentrosPorRed = function() {
+        const redId = document.getElementById('selRed').value;
+        poblarSelCentros(redId);
     }
 
     async function cargarIndicadores() {
@@ -935,12 +969,14 @@
         document.getElementById('inputAnioDesde').value = anioActual;
         document.getElementById('inputAnioHasta').value = anioActual;
 
+        await cargarRedes();
         await cargarCentros();
         await cargarIndicadores();
     });
 </script>
 </body>
 </html>
+
 
 
 
