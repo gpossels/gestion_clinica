@@ -412,6 +412,14 @@
                 <label>Piso</label>
                 <input type="text" id="inputPiso" placeholder="Ej: 6">
             </div>
+            <div class="form-col">
+                <label>Tipo de Atención</label>
+                <select id="selTipoAtencion">
+                    <option value="hospitalaria">Hospitalaria</option>
+                    <option value="urgencias">Urgencias</option>
+                    <option value="ambulatoria">Ambulatoria</option>
+                </select>
+            </div>
             <div class="form-col" style="display:flex; align-items:flex-end;">
                 <button class="btn btn-success" onclick="agregarServicio()">Agregar Servicio</button>
             </div>
@@ -429,6 +437,7 @@
                     <th>Unidad</th>
                     <th>Edificio</th>
                     <th>Piso</th>
+                    <th>Tipo Atención</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -1520,9 +1529,10 @@ async function iniciarAutocompletadoConsol() {
             return;
         }
 
+        const tipo_atencion = document.getElementById('selTipoAtencion').value;
         try {
             await addDoc(collection(db, 'unidad_servicio'), {
-                centro_id, unidad, edificio, piso, activo: true
+                centro_id, unidad, edificio, piso, tipo_atencion, activo: true
             });
             document.getElementById('inputUnidad').value = '';
             document.getElementById('inputEdificio').value = '';
@@ -1563,6 +1573,7 @@ async function iniciarAutocompletadoConsol() {
                 <td>${s.unidad}</td>
                 <td>${s.edificio || '-'}</td>
                 <td>${s.piso || '-'}</td>
+                <td>${s.tipo_atencion || '-'}</td>
                 <td>${s.activo !== false ? '✅ Activo' : '⛔ Inactivo'}</td>
                 <td>
                     <button class="btn-sm btn-sm-edit" onclick="toggleServicio('${s.id}', ${s.activo !== false})">
@@ -1750,6 +1761,7 @@ async function iniciarAutocompletadoConsol() {
 </body>
 
 </html>
+
 
 
 
