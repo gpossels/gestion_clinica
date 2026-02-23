@@ -238,20 +238,24 @@
                     <option value="">-- Todos los centros --</option>
                 </select>
             </div>
+        </div>
+        <div class="form-row">
             <div class="form-col">
-                <label>Desde (Semana)</label>
+                <label>Desde semana</label>
                 <select id="selSemanaDesde"></select>
             </div>
             <div class="form-col">
-                <label>Año Desde</label>
+                <label>del Año</label>
                 <input type="number" id="inputAnioDesde" min="2000" max="2100" value="2025">
             </div>
+        </div>
+        <div class="form-row">
             <div class="form-col">
-                <label>Hasta (Semana)</label>
+                <label>Hasta semana</label>
                 <select id="selSemanaHasta"></select>
             </div>
             <div class="form-col">
-                <label>Año Hasta</label>
+                <label>del Año</label>
                 <input type="number" id="inputAnioHasta" min="2000" max="2100" value="2025">
             </div>
         </div>
@@ -894,8 +898,17 @@
         serviciosCache = [];
         snapSrv.forEach(d => serviciosCache.push({ id: d.id, ...d.data() }));
 
+        const redIdPBC = document.getElementById('selRed').value;
+        const centroIdPBC = document.getElementById('selCentro').value;
+
         let centrosVista = centros.filter(c => c.activo !== false);
-        if (redId) centrosVista = centrosVista.filter(c => c.red_id === redId);
+        if (centroIdPBC) {
+            centrosVista = centrosVista.filter(c => c.id === centroIdPBC);
+        } else if (redIdPBC) {
+            centrosVista = centrosVista.filter(c => c.red_id === redIdPBC);
+        } else if (redId) {
+            centrosVista = centrosVista.filter(c => c.red_id === redId);
+        }
 
         mostrarNivel1(centrosVista, ind);
     }
