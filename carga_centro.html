@@ -276,6 +276,14 @@
                 </select>
             </div>
             <div class="form-col">
+                <label>Tipo de Atención</label>
+                <select id="selTipoAtencionInc">
+                    <option value="hospitalaria">Hospitalizada/o</option>
+                    <option value="urgencias">Urgencias</option>
+                    <option value="ambulatoria">Ambulatoria</option>
+                </select>
+            </div>
+            <div class="form-col">
                 <label>Fecha del incidente</label>
                 <input type="date" id="inputFechaIncidente">
             </div>
@@ -293,6 +301,7 @@
                             <th>Fecha</th>
                             <th>Tipo</th>
                             <th>Servicio</th>
+                            <th>Atención</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -612,6 +621,7 @@
                 <td>${d.fecha}</td>
                 <td>${indMap[d.indicador_id] || d.indicador_id}</td>
                 <td>${srvMap[d.unidad_servicio_id] || d.unidad_servicio_id}</td>
+                <td>${d.tipo_atencion || '-'}</td>
                 <td>
                     <button class="btn-sm btn-sm-delete" onclick="eliminarIncidente('${d.id}')">Eliminar</button>
                 </td>
@@ -631,11 +641,13 @@
         }
 
         try {
+            const tipo_atencion = document.getElementById('selTipoAtencionInc').value;
             await addDoc(collection(db, 'incidentes'), {
                 centro_id: usuario.centro_id,
                 indicador_id,
                 unidad_servicio_id,
-                fecha
+                fecha,
+                tipo_atencion
             });
 
             await registrarLog('crear', 'incidentes', fecha, { indicador_id, unidad_servicio_id });
@@ -758,5 +770,6 @@
 </body>
 
 </html>
+
 
 
